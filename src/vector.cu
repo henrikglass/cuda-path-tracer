@@ -4,6 +4,10 @@ vec2 vec2::operator+(const vec2& v) const {
     return vec2(this->x + v.x, this->y + v.y);
 }
 
+vec2 vec2::operator-(const vec2& v) const {
+    return vec2(this->x - v.x, this->y - v.y);
+}
+
 vec2 vec2::normalized() const {
     float norm = sqrt(this->x * this->x + this->y * this->y);
     return vec2(this->x / norm, this->y / norm);
@@ -17,6 +21,10 @@ void vec2::normalize() {
 
 vec3 vec3::operator+(const vec3& v) const {
     return vec3(this->x + v.x, this->y + v.y, this->z + v.z);
+}
+
+vec3 vec3::operator-(const vec3& v) const {
+    return vec3(this->x - v.x, this->y - v.y, this->z - v.z);
 }
 
 vec3 vec3::normalized() const {
@@ -36,6 +44,13 @@ float dot(const vec2& a, const vec2& b) {
 }
 float dot(const vec3& a, const vec3& b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+vec2 operator*(float s, const vec2& v) {
+    return vec2(s * v.x, s * v.y);
+}
+vec3 operator*(float s, const vec3& v) {
+    return vec3(s * v.x, s * v.y, s * v.z);
 }
 
 std::ostream& operator<<(std::ostream& os, const vec2& v) {

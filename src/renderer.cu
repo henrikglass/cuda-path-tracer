@@ -1,10 +1,13 @@
-#include "renderer.cuh"
-#include "util.cuh"
-#include "vector.cuh"
 #include <stdio.h>
 
+#include "renderer.cuh"
+#include "camera.cuh"
+#include "geometry.h"
+#include "util.cuh"
+#include "vector.cuh"
 
-vec3 render(const vec3& a, const vec3& b) {
+
+/*vec3 render(const vec3& a, const vec3& b) {
     int devID = 0;
     cudaDeviceProp props;
 
@@ -31,4 +34,4 @@ __global__
 void ladug(vec3 *ans, const vec3 a, const vec3 b) {
     *ans = a + b;
     printf("hello\n");
-}
+}*/
