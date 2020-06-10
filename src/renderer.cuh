@@ -1,10 +1,11 @@
 #ifndef RENDERER_H
 #define RENDERER_H
-#include "vector.cuh"
+#include "camera.cuh"
+#include "scene.cuh"
 
-vec3 render(const vec3& a, const vec3& b);
+void render(const Camera &camera, Scene &scene);
 
 __global__
-void ladug(vec3 *ans, const vec3 a, const vec3 b);
+void device_render(vec3 *buf, int buf_size, const Camera& camera, Entity *entities, int n_entities);
 
 #endif

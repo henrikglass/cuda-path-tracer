@@ -1,13 +1,16 @@
 #include <iostream>
-#include "vector.cuh"
 #include "renderer.cuh"
 
 int main(void) {
-    vec3 v6(1.0f, 0.0f, 0.0f);
-    vec3 v7(1.0f, 1.0f, 0.0f);
-    v7.normalize();
-    vec3 ans = render(v6, v7);
-    std::cout << ans << std::endl;
+    Material m(vec3(1,0,0), 0, 0);
+    Entity sphere(vec3(0,0,2), 0.5f, m);
+    Entity sphere2(vec3(1,0,2), 0.3f, m);
+    Scene scene;
+    scene.addEntity(sphere);
+    scene.addEntity(sphere2);
+    vec2 res = vec2(100, 80);
+    Camera camera(vec3(0,0,0), vec3(0,0,1), res, res.y);
+    render(camera, scene);
     //std::cout << render(v6, v7) << std::endl;
     //std::cout << sizeof(vec3) << std::endl;
     //std::cout << sizeof(vec2) << std::endl;

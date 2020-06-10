@@ -19,6 +19,13 @@ void Entity::moveToDevice() {
     // TODO implement mesh case
 }
 
+void Entity::freeFromDevice() {
+    if (this->shape == SPHERE)
+        return;
+
+    // TODO implement mesh case
+}
+
 bool Entity::getClosestIntersection(const Ray &ray, Intersection &bestHit) {
     switch(this->shape) {
         case SPHERE:

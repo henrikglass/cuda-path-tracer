@@ -4,14 +4,16 @@
 #include "vector.cuh"
 
 struct Camera {
-    Camera(vec3 position, vec3 direction, vec2 resolution) {
-        this->position   = position;
-        this->direction  = direction;
-        this->resolution = resolution;
+    Camera(vec3 position, vec3 direction, vec2 resolution, float focal_length) {
+        this->position      = position;
+        this->direction     = direction;
+        this->resolution    = resolution;
+        this->focal_length  = focal_length;
     }
     vec3 position;
     vec3 direction;
     vec2 resolution;
-}
+    float focal_length;
+};
 
 #endif
