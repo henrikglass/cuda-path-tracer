@@ -5,7 +5,7 @@
 int main(void) {
     Material m(vec3(1,0,0), 0, 0);
     Entity sphere(vec3(0,0,2), 0.5f, m);
-    Entity sphere2(vec3(1,0,2), 0.3f, m);
+    Entity sphere2(vec3(1,1,2), 0.3f, m);
     Scene scene;
     scene.add_entity(sphere);
     scene.add_entity(sphere2);

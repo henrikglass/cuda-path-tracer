@@ -27,6 +27,10 @@ vec3 vec3::operator-(const vec3& v) const {
     return vec3(this->x - v.x, this->y - v.y, this->z - v.z);
 }
 
+vec3 vec3::operator-() const {
+    return vec3(-this->x, -this->y, -this->z);
+}
+
 vec3 vec3::normalized() const {
     float norm = sqrt(this->x * this->x + this->y * this->y + this->z * this->z);
     return vec3(this->x / norm, this->y / norm, this->z / norm);
@@ -51,6 +55,10 @@ vec2 operator*(float s, const vec2& v) {
 }
 vec3 operator*(float s, const vec3& v) {
     return vec3(s * v.x, s * v.y, s * v.z);
+}
+
+vec3 operator/(const vec3& v, float s) {
+    return vec3(v.x / s, v.y / s, v.z / s);
 }
 
 std::ostream& operator<<(std::ostream& os, const ivec2& v) {
