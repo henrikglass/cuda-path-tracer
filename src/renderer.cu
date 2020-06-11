@@ -74,41 +74,34 @@ Image render(const Camera &camera, Scene &scene) {
 
 __global__
 void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int n_entities) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
-    if ((i >= camera.resolution.x) || (j >= camera.resolution.y))
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if ((x >= camera.resolution.x) || (y >= camera.resolution.y))
         return;
-    int pixelIdx = j * camera.resolution.x +  i;
-    buf[pixelIdx].x = float(i) / camera.resolution.x;
-    buf[pixelIdx].y = float(j) / camera.resolution.y;
-    buf[pixelIdx].z = 0.2f;
+    int pixelIdx = y * camera.resolution.x +  x;
+    
+    //create ray
+    vec3 ray_orig = camera.position;
+    vec3 ray_dir = vec3(
+        x - (camera.resolution.x / 2),
+        y - (camera.resolution.y / 2),
+        camera.focal_length
+    );
+    ray_dir.normalize();
+    Ray ray(ray_orig, ray_dir);
+
+    // cast ray
+    Intersection hit;
+    if(!get_closest_intersection_in_scene(ray, entities, n_entities, hit))
+        return; // no hit
+
+    // color pixel
+    buf[pixelIdx].x = hit.entity->material.albedo.x;
+    buf[pixelIdx].y = hit.entity->material.albedo.y;
+    buf[pixelIdx].z = hit.entity->material.albedo.z;
+
+    // simple gradient render
+    //buf[pixelIdx].x = float(x) / camera.resolution.x;
+    //buf[pixelIdx].y = float(y) / camera.resolution.y;
+    //buf[pixelIdx].z = 0.2f;
 }
-
-/*vec3 render(const vec3& a, const vec3& b) {
-    int devID = 0;
-    cudaDeviceProp props;
-
-    //Get GPU information
-    cudaGetDevice(&devID);
-    cudaGetDeviceProperties(&props, devID);
-    printf("Device %d: \"%s\" with Compute %d.%d capability\n",
-           devID, props.name, props.major, props.minor);
-
-    vec3 ans;
-    vec3 *d_ans;
-    cudaMalloc(&d_ans, sizeof(vec3));
-    // call ladug
-    ladug<<<1, 2>>>(d_ans, a, b);
-    gpuErrchk(cudaPeekAtLastError());
-    cudaMemcpy(&ans, d_ans, sizeof(vec3), cudaMemcpyDeviceToHost);
-    gpuErrchk(cudaPeekAtLastError());
-    cudaDeviceSynchronize();
-    gpuErrchk(cudaPeekAtLastError());
-    return ans;
-}
-
-__global__
-void ladug(vec3 *ans, const vec3 a, const vec3 b) {
-    *ans = a + b;
-    printf("hello\n");
-}*/

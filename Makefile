@@ -8,7 +8,7 @@ CC_LIBS		=
 
 # NVCC compiler options:
 NVCC 		= nvcc
-NVCC_FLAGS 	= -dc -arch compute_75
+NVCC_FLAGS 	= -O2 -dc -arch compute_75
 NVCC_LIBS 	=
 
 # Linker options

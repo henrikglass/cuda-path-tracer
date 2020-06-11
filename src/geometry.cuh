@@ -1,13 +1,16 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
+#define EPSILON 0.00001f
+
 #include <string>
+#include <float.h>
 #include "material.cuh"
 
 enum Shape {SPHERE, TRIANGLE_MESH};
 
 struct Ray {
-    Ray(vec3 origin, vec3 direction) {
+    __device__ __host__ Ray(vec3 origin, vec3 direction) {
         this->origin = origin;
         this->direction = direction;
     }
@@ -17,7 +20,7 @@ struct Ray {
 
 struct Triangle {
     vec3 a, b, c;
-    Triangle(vec3 a, vec3 b, vec3 c) {
+    __device__ __host__ Triangle(vec3 a, vec3 b, vec3 c) {
         this->a = a;
         this->b = b;
         this->c = c;
@@ -34,10 +37,16 @@ struct AABB {
     vec3 max;
 };
 
+class Entity;
+
 struct Intersection {
+    __device__ Intersection() {
+        this->distance = FLT_MAX;
+    }
     vec3 position;
     vec3 normal;
     float distance;
+    Entity *entity;
 };
 
 class Entity {
@@ -53,8 +62,8 @@ private:
     //float radius;
 
     // misc. functions
-    bool get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit);
-    bool get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit);
+    __device__ bool get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit);
+    __device__ bool get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit);
 public:
     Shape shape; // Workaround for losing virtual inheritance with cuda. 
 
@@ -67,7 +76,7 @@ public:
     void free_from_device();
 
     // misc. functions
-    bool get_closest_intersection(const Ray &ray, Intersection &bestHit);
+    __device__ bool get_closest_intersection(const Ray &ray, Intersection &bestHit);
 
     //// for sphere case:
     vec3 center;
@@ -75,5 +84,12 @@ public:
 
     Material material;
 };
+
+__device__ bool get_closest_intersection_in_scene(
+        const Ray &ray, 
+        Entity *entities, 
+        int n_entities, 
+        Intersection &bestHit
+);
 
 #endif

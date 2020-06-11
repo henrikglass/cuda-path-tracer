@@ -30,9 +30,9 @@ struct vec3 {
     float x, y, z;
     __device__ __host__ vec3() {
         // TODO remove
-        this->x = 0;
-        this->y = 0;
-        this->z = 0;
+        //this->x = 0;
+        //this->y = 0;
+        //this->z = 0;
     }
     __device__ __host__ vec3(float x, float y, float z) {
         this->x = x;

@@ -26,6 +26,16 @@ void Entity::free_from_device() {
     // TODO implement mesh case
 }
 
+__device__
+bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, int n_entities, Intersection &is) {
+    bool is_hit = false;
+    for(int i = 0; i < n_entities; i++) {
+        is_hit = entities[i].get_closest_intersection(ray, is) || is_hit;
+    }
+    return is_hit;
+}
+
+__device__
 bool Entity::get_closest_intersection(const Ray &ray, Intersection &bestHit) {
     switch(this->shape) {
         case SPHERE:
@@ -37,6 +47,7 @@ bool Entity::get_closest_intersection(const Ray &ray, Intersection &bestHit) {
     }
 }
 
+__device__
 bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit) {
     vec3 d = ray.origin - this->center;
     float p1 = -dot(ray.direction, d);
@@ -51,11 +62,13 @@ bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection &bestH
         bestHit.position = ray.origin + t * ray.direction;
         bestHit.normal = bestHit.position - this->center;
         bestHit.normal.normalize();
+        bestHit.entity = this;
         return true;
     }
     return false;
 }
 
+__device__
 bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit) {
     // TODO Implement
     return false;
