@@ -53,6 +53,10 @@ vec3 operator*(float s, const vec3& v) {
     return vec3(s * v.x, s * v.y, s * v.z);
 }
 
+std::ostream& operator<<(std::ostream& os, const ivec2& v) {
+    return os << "(" << v.x << ", " << v.y << ")";
+}
+
 std::ostream& operator<<(std::ostream& os, const vec2& v) {
     return os << "(" << v.x << ", " << v.y << ")";
 }

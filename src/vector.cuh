@@ -4,6 +4,15 @@
 #include <math.h>
 #include <iostream>
 
+struct ivec2 {
+    int x, y;
+    __device__ __host__ ivec2() {}
+    __device__ __host__ ivec2(int x, int y) {
+        this->x = x;
+        this->y = y;
+    }
+};
+
 struct vec2 {
     float x, y;
     __device__ __host__ vec2() {}
@@ -42,6 +51,7 @@ __host__ __device__ float dot(const vec3& a, const vec3& b);
 __device__ __host__ vec2 operator*(float s, const vec2& v);
 __device__ __host__ vec3 operator*(float s, const vec3& v);
 
+__host__ std::ostream& operator<<(std::ostream& os, const ivec2& v);
 __host__ std::ostream& operator<<(std::ostream& os, const vec2& v);
 __host__ std::ostream& operator<<(std::ostream& os, const vec3& v);
 

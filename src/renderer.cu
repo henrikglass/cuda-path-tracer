@@ -8,7 +8,7 @@
 #include "vector.cuh"
 
 
-void render(const Camera &camera, Scene &scene) {
+Image render(const Camera &camera, Scene &scene) {
     // ------------------------------- debug ------------------------------
     // debug print scene representation
     std::cout << "camera position: " << camera.position << " camera direction: " << camera.direction << std::endl;
@@ -41,33 +41,47 @@ void render(const Camera &camera, Scene &scene) {
 
 
     // Allocate output image buffer on device
-    int buf_size = camera.resolution.x * camera.resolution.y * sizeof(vec3);
+    int n_pixels = camera.resolution.x * camera.resolution.y;
+    int buf_size = n_pixels * sizeof(vec3);
     vec3 *buf;
     gpuErrchk(cudaMalloc(&buf, buf_size));
 
     // move scene to device memory
     scene.copyToDevice();
 
+    // Decide on tile size, # of threads and # of blocks
+    int tile_size = 8; // 8x8 pixels
+    dim3 blocks(
+            camera.resolution.x / tile_size + 1, 
+            camera.resolution.y / tile_size + 1
+    );
+    dim3 threads(tile_size, tile_size);
+
     // render on device
-    //ladug<<<1, 1>>>();
-    device_render<<<1, 1>>>(buf, buf_size, camera, scene.d_entities, scene.entities.size());
+    device_render<<<blocks, threads>>>(buf, buf_size, camera, scene.d_entities, scene.entities.size());
     gpuErrchk(cudaPeekAtLastError());
     cudaDeviceSynchronize();
     gpuErrchk(cudaPeekAtLastError());
+
+    // copy data back to host
+    std::vector<vec3> result_pixels(n_pixels);
+    cudaMemcpy(&(result_pixels[0]), buf, buf_size, cudaMemcpyDeviceToHost);
+    gpuErrchk(cudaPeekAtLastError());
+
+    // return result
+    return Image(result_pixels, camera.resolution);
 }
 
 __global__
-void device_render(vec3 *buf, int buf_size, const Camera& camera, Entity *entities, int n_entities) {
-    printf("%d\n", n_entities);
-    for(int i = 0; i < n_entities; i++) {
-        printf("entity %d has shape %d\n", i, entities[i].shape);
-        printf("xyzr: %g %g %g %g\n", 
-                entities[i].center.x, 
-                entities[i].center.y, 
-                entities[i].center.z, 
-                entities[i].center.x
-        );
-    }
+void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int n_entities) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if ((i >= camera.resolution.x) || (j >= camera.resolution.y))
+        return;
+    int pixelIdx = j * camera.resolution.x +  i;
+    buf[pixelIdx].x = float(i) / camera.resolution.x;
+    buf[pixelIdx].y = float(j) / camera.resolution.y;
+    buf[pixelIdx].z = 0.2f;
 }
 
 /*vec3 render(const vec3& a, const vec3& b) {
