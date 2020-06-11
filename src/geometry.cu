@@ -12,32 +12,32 @@ Entity::Entity(const vec3 &center, float radius, const Material &material) {
     this->material  = material;
 }
 
-void Entity::moveToDevice() {
+void Entity::move_to_device() {
     if (this->shape == SPHERE)
         return;
 
     // TODO implement mesh case
 }
 
-void Entity::freeFromDevice() {
+void Entity::free_from_device() {
     if (this->shape == SPHERE)
         return;
 
     // TODO implement mesh case
 }
 
-bool Entity::getClosestIntersection(const Ray &ray, Intersection &bestHit) {
+bool Entity::get_closest_intersection(const Ray &ray, Intersection &bestHit) {
     switch(this->shape) {
         case SPHERE:
-            return getClosestSphereIntersection(ray, bestHit);
+            return get_closest_sphere_intersection(ray, bestHit);
         case TRIANGLE_MESH:
-            return getClosestTriangleMeshIntersection(ray, bestHit);
+            return get_closest_triangle_mesh_intersection(ray, bestHit);
         default:
             return false;
     }
 }
 
-bool Entity::getClosestSphereIntersection(const Ray &ray, Intersection &bestHit) {
+bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit) {
     vec3 d = ray.origin - this->center;
     float p1 = -dot(ray.direction, d);
     float p2sqr = p1 * p1 - dot(d,d) + this->radius * this->radius;
@@ -56,7 +56,7 @@ bool Entity::getClosestSphereIntersection(const Ray &ray, Intersection &bestHit)
     return false;
 }
 
-bool Entity::getClosestTriangleMeshIntersection(const Ray &ray, Intersection &bestHit) {
+bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit) {
     // TODO Implement
     return false;
 }

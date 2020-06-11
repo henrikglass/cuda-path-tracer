@@ -1,4 +1,5 @@
 cudaPathTracer
 *.o
 kladd.txt
+output.ppm
 

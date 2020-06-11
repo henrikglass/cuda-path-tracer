@@ -7,8 +7,8 @@ int main(void) {
     Entity sphere(vec3(0,0,2), 0.5f, m);
     Entity sphere2(vec3(1,0,2), 0.3f, m);
     Scene scene;
-    scene.addEntity(sphere);
-    scene.addEntity(sphere2);
+    scene.add_entity(sphere);
+    scene.add_entity(sphere2);
     ivec2 res = ivec2(100, 80);
     Camera camera(vec3(0,0,0), vec3(0,0,1), res, res.y);
     Image image = render(camera, scene);

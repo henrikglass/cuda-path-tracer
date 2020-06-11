@@ -9,9 +9,9 @@ public:
     Scene();
     std::vector<Entity> entities;
     Entity *d_entities;
-    void addEntity(Entity entity);
-    void copyToDevice();
-    void freeFromDevice();
+    void add_entity(Entity entity);
+    void copy_to_device();
+    void free_from_device();
 
 };
 

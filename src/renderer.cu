@@ -47,7 +47,7 @@ Image render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaMalloc(&buf, buf_size));
 
     // move scene to device memory
-    scene.copyToDevice();
+    scene.copy_to_device();
 
     // Decide on tile size, # of threads and # of blocks
     int tile_size = 8; // 8x8 pixels

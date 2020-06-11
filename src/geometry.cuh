@@ -53,8 +53,8 @@ private:
     //float radius;
 
     // misc. functions
-    bool getClosestSphereIntersection(const Ray &ray, Intersection &bestHit);
-    bool getClosestTriangleMeshIntersection(const Ray &ray, Intersection &bestHit);
+    bool get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit);
+    bool get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit);
 public:
     Shape shape; // Workaround for losing virtual inheritance with cuda. 
 
@@ -63,11 +63,11 @@ public:
     Entity(const vec3 &center, float radius, const Material &material);   // create sphere entity from coordinate and radius.
     
     // cuda specifics
-    void moveToDevice();
-    void freeFromDevice();
+    void move_to_device();
+    void free_from_device();
 
     // misc. functions
-    bool getClosestIntersection(const Ray &ray, Intersection &bestHit);
+    bool get_closest_intersection(const Ray &ray, Intersection &bestHit);
 
     //// for sphere case:
     vec3 center;

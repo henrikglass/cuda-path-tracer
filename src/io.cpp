@@ -20,7 +20,6 @@ void save_ppm(
 	
 	// write data.
 	for(int i = 0; i < img.resolution.x * img.resolution.y; i++) {
-        std::cout << i << ": " << img.buf[i] << std::endl;
 		char color[3];
         color[0] = img.buf[i].x * PRECISION_8;
         color[1] = img.buf[i].y * PRECISION_8;
