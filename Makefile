@@ -37,6 +37,8 @@ CUO_FILES = $(addprefix $(OBJ_DIR)/,$(notdir $(CU_FILES:.cu=.cu.o)))
 OBJS =  $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(notdir $(CPP_FILES)))
 OBJS += $(patsubst %.cu,$(OBJ_DIR)/%.cu.o,$(notdir $(CU_FILES)))
 
+build: $(OBJ_DIR) $(TARGET)
+
 $(TARGET): $(OBJS)
 	$(LINKER) $(LINKER_FLAGS) $? -o $@ $(CUDA_INC_DIR) $(CUDA_LIB_DIR) $(CUDA_LINK_LIBS)
 
@@ -45,6 +47,9 @@ $(OBJ_DIR)/%.cu.o: $(SRC_DIR)/%.cu $(CUH_FILES)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(H_FILES)
 	$(CC) $(CC_FLAGS) -c $< -o $@ $(CUDA_INC_DIR) $(CUDA_LIB_DIR) $(CUDA_LINK_LIBS)
+
+$(OBJ_DIR):
+	mkdir $(OBJ_DIR)
 
 clean:
 	$(RM) obj/* *.o $(TARGET)
