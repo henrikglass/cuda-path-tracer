@@ -56,6 +56,9 @@ vec2 operator*(float s, const vec2& v) {
 vec3 operator*(float s, const vec3& v) {
     return vec3(s * v.x, s * v.y, s * v.z);
 }
+vec3 operator*(const vec3& v, float s) {
+    return operator*(s, v);
+}
 
 vec3 operator/(const vec3& v, float s) {
     return vec3(v.x / s, v.y / s, v.z / s);

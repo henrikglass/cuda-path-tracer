@@ -19,7 +19,7 @@ void save_ppm(
 	fprintf(fp, "%d\n", PRECISION_8);	
 	
 	// write data.
-	for(int i = 0; i < img.resolution.x * img.resolution.y; i++) {
+	for (int i = 0; i < img.resolution.x * img.resolution.y; i++) {
 		char color[3];
         color[0] = img.buf[i].x * PRECISION_8;
         color[1] = img.buf[i].y * PRECISION_8;

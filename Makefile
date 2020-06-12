@@ -9,7 +9,7 @@ CC_LIBS		=
 # NVCC compiler options:
 NVCC 		= nvcc
 NVCC_FLAGS 	= -O2 -dc -arch compute_75
-NVCC_LIBS 	=
+NVCC_LIBS 	= -Iexternal
 
 # Linker options
 LINKER 		 = nvcc #g++ #clang
@@ -40,16 +40,16 @@ OBJS += $(patsubst %.cu,$(OBJ_DIR)/%.cu.o,$(notdir $(CU_FILES)))
 build: $(OBJ_DIR) $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(LINKER) $(LINKER_FLAGS) $? -o $@ $(CUDA_INC_DIR) $(CUDA_LIB_DIR) $(CUDA_LINK_LIBS)
+	$(LINKER) $(LINKER_FLAGS) $? -o $@ $(CUDA_INC_DIR) $(CUDA_LIB_DIR) $(CUDA_LINK_LIBS) $(LINKER_LIBS)
 
 $(OBJ_DIR)/%.cu.o: $(SRC_DIR)/%.cu $(CUH_FILES)
-	$(NVCC) $(NVCC_FLAGS) -c $< -o $@
+	$(NVCC) $(NVCC_FLAGS) -c $< -o $@ $(NVCC_LIBS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(H_FILES)
-	$(CC) $(CC_FLAGS) -c $< -o $@ $(CUDA_INC_DIR) $(CUDA_LIB_DIR) $(CUDA_LINK_LIBS)
+	$(CC) $(CC_FLAGS) -c $< -o $@ $(CUDA_INC_DIR) $(CUDA_LIB_DIR) $(CUDA_LINK_LIBS) $(CC_LIBS)
 
 $(OBJ_DIR):
 	mkdir $(OBJ_DIR)
 
 clean:
-	$(RM) obj/* *.o $(TARGET)
+	$(RM) output.ppm obj/* *.o $(TARGET)

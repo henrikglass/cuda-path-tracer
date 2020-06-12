@@ -6,9 +6,26 @@ int main(void) {
     Material m(vec3(1,0,0), 0, 0);
     Entity sphere(vec3(0,0,2), 0.5f, m);
     Entity sphere2(vec3(1,1,2), 0.3f, m);
+    Entity teapot("examples/teapot/utah.obj", m);
     Scene scene;
+
+    // test transform
+    sphere.scale(0.5f);
+    sphere.translate(vec3(0.5, 0, 0));
+
+    // test teapot
+    std::cout << "teapot: " << std::endl;
+    teapot.print();
+
+    teapot.scale(0.01f);
+    teapot.translate(vec3(205.3 - 1.5f, 0, -82.3 + 3));
+    teapot.print();
+
     scene.add_entity(sphere);
     scene.add_entity(sphere2);
+    scene.add_entity(teapot);
+
+
     ivec2 res = ivec2(1000, 800);
     Camera camera(vec3(0,0,0), vec3(0,0,1), res, res.y);
     Image image = render(camera, scene);

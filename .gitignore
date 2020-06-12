@@ -3,6 +3,10 @@ cudaPathTracer
 kladd.txt
 output.ppm
 .vscode/
+obj/
+build/
+external/
+include/
 *.swp
 *.out
 *.ppm
