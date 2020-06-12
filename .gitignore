@@ -2,4 +2,9 @@ cudaPathTracer
 *.o
 kladd.txt
 output.ppm
+.vscode/
+*.swp
+*.out
+*.ppm
+*.sh
 
