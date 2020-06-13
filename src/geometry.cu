@@ -5,6 +5,9 @@
 #include <iostream>
 #include "util.cuh"
 
+//#pragma hd_warning_disable
+//#include "glm/glm/glm.hpp"
+
 /************************************************************************************/
 /*                                    Constructors                                  */
 /************************************************************************************/
@@ -27,10 +30,10 @@ Entity::Entity(const std::string &path, const Material &material) {
     objl::Mesh mesh = ojb_loader.LoadedMeshes[0];
 
     // allocate space
-    this->vertices_size  = mesh.Vertices.size();
-    this->triangles_size = mesh.Indices.size() / 3;
-    this->vertices  = new Vertex[vertices_size];
-    this->triangles = new Triangle[triangles_size];
+    this->n_vertices  = mesh.Vertices.size();
+    this->n_triangles = mesh.Indices.size() / 3;
+    this->vertices  = new Vertex[this->n_vertices];
+    this->triangles = new Triangle[this->n_triangles];
     
     // For AABB
     vec3 min(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -69,6 +72,19 @@ Entity::Entity(const std::string &path, const Material &material) {
                 mesh.Indices[i + 2]
         );
     }
+
+    std::cout << "KALAS" << std::endl;
+    std::cout << this->vertices[2727].normal << std::endl;
+    std::cout << this->vertices[2728].normal << std::endl;
+    std::cout << this->vertices[2729].normal << std::endl;
+
+    // debug print all triangle vertices
+    /*for(int i = 0; i < this->n_triangles; i++) {
+        std::cout << "tri: " << i << std::endl;
+        std::cout << this->vertices[this->triangles[i].idx_a].position << std::endl;
+        std::cout << this->vertices[this->triangles[i].idx_b].position << std::endl;
+        std::cout << this->vertices[this->triangles[i].idx_c].position << std::endl;
+    }*/
 
     // create AABB
     this->aabb = AABB(min, max);
@@ -129,18 +145,15 @@ void Entity::scale(float factor) {
     }
 
     if (this->shape == TRIANGLE_MESH) {
-        int v_size = this->vertices_size;
+        int v_size = this->n_vertices;
         for(int i = 0; i < v_size; i++) {
             vec3 pos = vertices[i].position;
-            vec3 a = pos - this->center;
-            vec3 b = a * factor;
-            vec3 c = b + this->center;
-            //pos = ((pos - this->center) * factor) + this->center;
-            vertices[i].position = c;
+            pos = ((pos - this->center) * factor) + this->center;
+            vertices[i].position = pos;
         }
 
         // recalculate aabb
-        this->aabb.recalculate(this->vertices, this->vertices_size);
+        this->aabb.recalculate(this->vertices, this->n_vertices);
     }
 }
 
@@ -149,7 +162,7 @@ void Entity::translate(vec3 delta) {
     this->center = this->center + delta;
 
     if (this->shape == TRIANGLE_MESH) {
-        int v_size = this->vertices_size;
+        int v_size = this->n_vertices;
         for(int i = 0; i < v_size; i++) {
             vec3 pos = vertices[i].position;
             pos = pos + delta;
@@ -157,8 +170,29 @@ void Entity::translate(vec3 delta) {
         }
 
         // recalculate aabb
-        this->aabb.recalculate(this->vertices, this->vertices_size);
+        this->aabb.recalculate(this->vertices, this->n_vertices);
     }
+}
+
+void Entity::rotate(vec3 rot) {
+    if (this->shape == SPHERE)
+        return;
+    
+    // rotate on x
+    for (int i = 0; i < this->n_vertices; i++) {
+        vec3 v = this->vertices[i].position - this->center;
+        v = vec3(
+            v.x,
+            v.y*cos(rot.x) - v.z*sin(rot.x),
+            v.y*sin(rot.x) - v.z*cos(rot.x)
+        );
+        this->vertices[i].position = v + this->center;
+    }
+
+    // recalculate aabb
+    this->aabb.recalculate(this->vertices, this->n_vertices);
+
+    // TODO rotate on y and z. Preferable not one at a time.
 }
 
 /************************************************************************************/
@@ -171,13 +205,13 @@ void Entity::copy_to_device() {
 
     if (this->shape == TRIANGLE_MESH) {
         // copy vertices
-        long vertices_size = this->vertices_size * sizeof(Vertex);
+        long vertices_size = this->n_vertices * sizeof(Vertex);
         gpuErrchk(cudaMalloc(&this->d_vertices, vertices_size));
         cudaMemcpy(this->d_vertices, this->vertices, vertices_size, cudaMemcpyHostToDevice);
         gpuErrchk(cudaPeekAtLastError());
 
         // copy triangles
-        long triangles_size = this->triangles_size * sizeof(Triangle);
+        long triangles_size = this->n_triangles * sizeof(Triangle);
         gpuErrchk(cudaMalloc(&this->d_triangles, triangles_size));
         cudaMemcpy(this->d_triangles, this->triangles, triangles_size, cudaMemcpyHostToDevice);
         gpuErrchk(cudaPeekAtLastError());
@@ -202,6 +236,31 @@ bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, int n_e
     for (int i = 0; i < n_entities; i++) {
         is_hit = entities[i].get_closest_intersection(ray, is) || is_hit;
     }
+
+    // if hit entity has smooth_shading enabled, adjust the normal
+    /*Triangle *tr = is.triangle;
+    Entity *e = is.entity;
+    if (is_hit && tr != nullptr && e->material.smooth_shading) {
+        float u = is.u;
+        float v = is.v;
+        float w = 1.0f - (u + v);
+        printf("idxs: %d %d %d\n", tr->idx_a, tr->idx_b, tr->idx_c);
+        vec3 v0_normal = e->d_vertices[tr->idx_a].normal;
+        vec3 v1_normal = e->d_vertices[tr->idx_b].normal;
+        vec3 v2_normal = e->d_vertices[tr->idx_c].normal;
+        printf("v0 normal: (%g, %g, %g)\n", v0_normal.x, v0_normal.y, v0_normal.z);
+        printf("v1 normal: (%g, %g, %g)\n", v1_normal.x, v1_normal.y, v1_normal.z);
+        printf("v2 normal: (%g, %g, %g)\n", v2_normal.x, v2_normal.y, v2_normal.z);
+        printf("flat normal: (%g, %g, %g)\n", is.normal.x, is.normal.y, is.normal.z);
+        //is.normal = -(u * v1_normal + v * v2_normal + w * v0_normal); // pure guess
+        //is.normal = -(u * v2_normal + v * v1_normal + w * v0_normal); // pure guess
+        //is.normal = u * v0_normal + v * v2_normal + w * v1_normal; // pure guess
+        //is.normal = u * v2_normal + v * v0_normal + w * v1_normal; // pure guess
+        //is.normal = u * v1_normal + v * v0_normal + w * v2_normal; // pure guess
+        //is.normal = u * v0_normal + v * v1_normal + w * v2_normal; // pure guess
+        //is.normal.normalize();
+    }*/
+
     return is_hit;
 }
 
@@ -224,7 +283,7 @@ bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection &bestH
     float p2sqr = p1 * p1 - dot(d,d) + this->radius * this->radius;
     if (p2sqr < 0)
         return false;
-    float p2 = sqrt(p2sqr);
+    float p2 = sqrtf(p2sqr); // sqrt(p2sqr)
     float t = p1 - p2 > 0 ? p1 - p2 : p1 + p2;
     if (t > 0 && t < bestHit.distance)
     {
@@ -242,7 +301,60 @@ __device__
 bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit) {
     if (!this->aabb.intersects(ray))
         return false;
-    return true;
+    bool hit = false;
+    for (int i = 0; i < this->n_triangles; i++) {
+        hit = intersects_triangle(&(this->d_triangles[i]), bestHit, ray) || hit;
+    }
+    return hit;
+}
+
+
+/*
+ * Tomas Akenine-Möller and Ben Trumbore's algorithm.
+ *
+ * http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/raytri_tam.pdf
+ */
+__device__
+bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHit, const Ray &ray) {
+    vec3 v0 = this->d_vertices[triangle->idx_a].position;
+    vec3 v1 = this->d_vertices[triangle->idx_b].position;
+    vec3 v2 = this->d_vertices[triangle->idx_c].position;
+    vec3 e1, e2, pvec, tvec, qvec;
+    float t, u, v, det, inv_det;
+
+    e1 = v1 - v0;
+    e2 = v2 - v0;
+
+    pvec = cross(ray.direction, e2);
+    det = dot(e1, pvec);
+    if (fabs(det) < EPSILON) 
+        return false;
+    
+    inv_det = 1.0f / det;
+    tvec = ray.origin - v0;
+    u = dot(tvec, pvec) * inv_det;
+    if (u < 0.0f || u > 1.0f)
+        return false;
+
+    qvec = cross(tvec, e1);
+    v = dot(ray.direction, qvec) * inv_det;
+    if (v < 0.0f || u + v > 1.0f)
+        return false;
+
+    t = dot(e2, qvec) * inv_det; 
+
+    if(t > 0 && t < bestHit.distance) {
+        bestHit.distance = t;
+        bestHit.position = ray.origin + t * ray.direction;
+        bestHit.normal = cross(e1, e2).normalized(); // TODO SMOOTH SHADING
+        bestHit.entity = this;
+        bestHit.triangle = triangle;
+        bestHit.u = u;
+        bestHit.v = v;
+        return true;
+    }
+
+    return false;
 }
 
 __device__ 

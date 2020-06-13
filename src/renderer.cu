@@ -78,6 +78,11 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if ((x >= camera.resolution.x) || (y >= camera.resolution.y))
         return;
+    //if (x != 496 || y != 424)
+    //    return;
+
+
+
     int pixelIdx = y * camera.resolution.x +  x;
     
     //create ray
@@ -96,9 +101,18 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
         return; // no hit
 
     // color pixel
-    buf[pixelIdx] = vec3(1.0f, 0.0f, 1.0f);
-    //buf[pixelIdx] =  (hit.normal + vec3(1,1,1)) / 2;
+    //buf[pixelIdx] = vec3(1.0f, 0.0f, 1.0f);
+    buf[pixelIdx] =  (hit.normal + vec3(1,1,1)) / 2;
     
+
+
+
+
+
+
+
+
+
     
     //buf[pixelIdx].x = hit.entity->material.albedo.x;
     //buf[pixelIdx].y = hit.entity->material.albedo.y;

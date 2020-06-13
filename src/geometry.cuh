@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#define EPSILON 0.00001f
+#define EPSILON 0.000001f
 
 #include <string>
 #include <float.h>
@@ -60,17 +60,19 @@ struct Intersection {
     vec3 normal;
     float distance;
     Entity *entity;
+    Triangle *triangle = nullptr;
+    float u, v;
 };
 
 class Entity {
 private:
     // for triangle mesh case:
-    Triangle *triangles   = nullptr;
-    Vertex *vertices      = nullptr;
-    Triangle *d_triangles = nullptr;
-    Vertex *d_vertices    = nullptr;
-    long triangles_size;
-    long vertices_size;
+    //Triangle *triangles   = nullptr;
+    //Vertex *vertices      = nullptr;
+    //Triangle *d_triangles = nullptr;
+    //Vertex *d_vertices    = nullptr;
+    //long n_triangles;
+    //long n_vertices;
     AABB aabb;
 
     // for sphere case:
@@ -98,16 +100,41 @@ public:
     void copy_to_device();
     void free_from_device();
 
-    // misc. functions
+    // intersection functions
     __device__ bool get_closest_intersection(const Ray &ray, Intersection &bestHit);
+    __device__ bool intersects_triangle(Triangle *triangle, Intersection &bestHit, const Ray &ray);
+    __device__ friend bool get_closest_intersection_in_scene(
+            const Ray &ray, 
+            Entity *entities, 
+            int n_entities, 
+            Intersection &bestHit
+    );
+
+    // tranformation functions
     __host__ void scale(float factor);
     __host__ void translate(vec3 delta);
+    __host__ void rotate(vec3 rot);
+
+    // misc functions
     __host__ void print();
 
     Material material;
 
     // TODO move to private
+    Triangle *triangles   = nullptr;
+    Vertex *vertices      = nullptr;
+    Triangle *d_triangles = nullptr;
+    Vertex *d_vertices    = nullptr;
+    long n_triangles;
+    long n_vertices;
+
 };
+
+__device__ bool intersects_triangle(
+    const Triangle &tr,
+    Intersection &bestHit,
+    const Ray &ray
+);
 
 __device__ bool intersects_aabb(
         float min_x,
@@ -119,11 +146,6 @@ __device__ bool intersects_aabb(
         const Ray &ray
 );
 
-__device__ bool get_closest_intersection_in_scene(
-        const Ray &ray, 
-        Entity *entities, 
-        int n_entities, 
-        Intersection &bestHit
-);
+
 
 #endif

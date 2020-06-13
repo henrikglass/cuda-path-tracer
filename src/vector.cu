@@ -50,6 +50,14 @@ float dot(const vec3& a, const vec3& b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
+vec3 cross(const vec3& a, const vec3& b) {
+    return vec3(
+            (a.y * b.z) - (a.z * b.y),
+            (a.z * b.x) - (a.x * b.z),
+            (a.x * b.y) - (a.y * b.x)
+    );
+}
+
 vec2 operator*(float s, const vec2& v) {
     return vec2(s * v.x, s * v.y);
 }

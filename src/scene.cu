@@ -10,8 +10,8 @@ void Scene::add_entity(Entity entity) {
 }
 
 void Scene::copy_to_device() {
-    for (Entity e : this->entities) {
-        e.copy_to_device();
+    for (int i = 0; i < this->entities.size(); i++) {
+        entities[i].copy_to_device();
     }
     long size = this->entities.size()*sizeof(Entity);
     gpuErrchk(cudaMalloc(&this->d_entities, size));
