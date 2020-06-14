@@ -4,7 +4,7 @@
 #include "io.h"
 
 int main(void) {
-    Material m(vec3(1,0,0), 0, 0, true);
+    /*Material m(vec3(1,0,0), 0, 0, true);
     Entity sphere(vec3(0,0,2), 0.5f, m);
     Entity sphere2(vec3(1,1,2), 0.3f, m);
     Entity teapot("examples/teapot/utah.obj", m);
@@ -34,6 +34,27 @@ int main(void) {
     Image image = render(camera, scene);
     std::cout << image.resolution << std::endl;
     save_ppm("output.ppm", image);
+
+    std::cout << sizeof(Octree) << std::endl;*/
+
+
+    std::cout << sizeof(Octree) << std::endl;
+    Vertex vs[3];
+    vs[0] = Vertex(vec3(0.1, 0.1, 0.1), vec3(0, 0, 0));
+    vs[1] = Vertex(vec3(0.1, 0.2, 0.1), vec3(0, 0, 0));
+    vs[2] = Vertex(vec3(0.2, 0.2, 0.1), vec3(0, 0, 0));
+    Triangle tr[1];
+    tr[0] = Triangle(0, 1, 2);
+    AABB aabb(vec3(0,0,0), vec3(1,1,1)); // min , max
+    Octree oct(aabb, 0);
+    std::cout << oct.triangle_indices.size() << std::endl;
+
+    oct.insert_triangles(vs, tr, 1);
+    //std::cout << oct.children[0] << std::endl;
+
+
+
+
 
 
     //std::cout << render(v6, v7) << std::endl;

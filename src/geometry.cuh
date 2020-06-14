@@ -6,6 +6,7 @@
 #include <string>
 #include <float.h>
 #include "material.h"
+#include <vector>
 #include "vector.cuh"
 
 enum Shape {SPHERE, TRIANGLE_MESH};
@@ -45,9 +46,25 @@ struct AABB {
         this->max = max;
     }
     __host__ void recalculate(Vertex *vertices, int n_vertices);
+    __host__ bool contains_triangle(vec3 v0, vec3 v1, vec3 v2);
     __device__ bool intersects(const Ray &ray);
     vec3 min;
     vec3 max;
+};
+
+struct Octree {
+    Octree(AABB aabb, int depth) : children() {
+        this->region = aabb;
+        this->depth = depth;
+        triangle_indices = std::vector<int>();
+    }
+    __host__ void insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx);
+    __host__ void insert_triangles(Vertex *vertices, Triangle *triangles, size_t n_triangles);
+    Octree *children[8];
+    std::vector<int> triangle_indices;
+    int  *d_triangle_indices = nullptr;
+    int depth;
+    AABB region;
 };
 
 class Entity;
@@ -67,12 +84,12 @@ struct Intersection {
 class Entity {
 private:
     // for triangle mesh case:
-    //Triangle *triangles   = nullptr;
-    //Vertex *vertices      = nullptr;
-    //Triangle *d_triangles = nullptr;
-    //Vertex *d_vertices    = nullptr;
-    //long n_triangles;
-    //long n_vertices;
+    Triangle *triangles   = nullptr;
+    Vertex *vertices      = nullptr;
+    Triangle *d_triangles = nullptr;
+    Vertex *d_vertices    = nullptr;
+    size_t n_triangles;
+    size_t n_vertices;
     AABB aabb;
 
     // for sphere case:
@@ -121,12 +138,6 @@ public:
     Material material;
 
     // TODO move to private
-    Triangle *triangles   = nullptr;
-    Vertex *vertices      = nullptr;
-    Triangle *d_triangles = nullptr;
-    Vertex *d_vertices    = nullptr;
-    size_t n_triangles;
-    size_t n_vertices;
 
 };
 
@@ -134,6 +145,29 @@ __device__ bool intersects_triangle(
     const Triangle &tr,
     Intersection &bestHit,
     const Ray &ray
+);
+
+
+__host__ inline bool triangle_inside_aabb(
+        float min_x,
+        float min_y,
+        float min_z,
+        float max_x,
+        float max_y,
+        float max_z,
+        vec3 v0,
+        vec3 v1,
+        vec3 v2
+);
+
+__host__ inline bool inside_aabb(
+        float min_x,
+        float min_y,
+        float min_z,
+        float max_x,
+        float max_y,
+        float max_z,
+        const vec3 &point
 );
 
 __device__ bool intersects_aabb(

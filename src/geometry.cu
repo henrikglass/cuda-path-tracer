@@ -1,3 +1,5 @@
+#define MAX_OCTREE_DEPTH 4
+
 #include "geometry.cuh"
 #include <math.h>
 #include <stdlib.h>
@@ -137,7 +139,72 @@ Entity::Entity(const vec3 &center, float radius, const Material &material) {
 }
 
 /************************************************************************************/
-/*                                 Misc. fucntions                                  */
+/*                                   Octree stuff                                   */
+/************************************************************************************/
+
+void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
+    float x_min = this->region.min.x;
+    float y_min = this->region.min.y;
+    float z_min = this->region.min.z;
+    float x_max = this->region.max.x;
+    float y_max = this->region.max.y;
+    float z_max = this->region.max.z;
+    float x_mid = 0.5f * (x_min + x_max);
+    float y_mid = 0.5f * (y_min + y_max);
+    float z_mid = 0.5f * (z_min + z_max);
+    int _case = -1; // 0 no single child fits triangle
+    AABB c[8];
+
+    ////     Bottom: y_min = 0      Top: y_min = 1/2
+    ////      _____________         _____________
+    ////     |      |      |       |      |      |        ^ Z
+    ////     |  c2  |  c3  |       |  c6  |  c7  |        |
+    ////     |______|______|       |______|______|        |
+    ////     |      |      |       |      |      |        |
+    ////     |  c0  |  c1  |       |  c4  |  c5  |          ------> X
+    ////     |______|______|       |______|______|
+    ////
+    ////             <----- lower ----->        <----- upper -----> 
+    c[0] = AABB(vec3(x_min, y_min, z_min), vec3(x_mid, y_mid, z_mid));
+    c[1] = AABB(vec3(x_mid, y_min, z_min), vec3(x_max, y_mid, z_mid));
+    c[2] = AABB(vec3(x_min, y_min, z_mid), vec3(x_mid, y_mid, z_max));
+    c[3] = AABB(vec3(x_mid, y_min, z_mid), vec3(x_max, y_mid, z_max));
+    c[4] = AABB(vec3(x_min, y_mid, z_min), vec3(x_mid, y_max, z_mid));
+    c[5] = AABB(vec3(x_mid, y_mid, z_min), vec3(x_max, y_max, z_mid));
+    c[6] = AABB(vec3(x_min, y_mid, z_mid), vec3(x_mid, y_max, z_max));
+    c[7] = AABB(vec3(x_mid, y_mid, z_mid), vec3(x_max, y_max, z_max));
+    for (int i = 0; i < 8; i++) {
+        _case = (c[i].contains_triangle(v0, v1, v2)) ? i : _case;
+    }
+
+    // Unless the math is wrong, there's exactly one possible case (no overridden values)
+    if (_case == -1 || this->depth == MAX_OCTREE_DEPTH) {
+        std::cout << "asd" << std::endl;
+        std::cout << this->triangle_indices.size() << std::endl;
+        this->triangle_indices.push_back(triangle_idx);
+    } else {
+        if (this->children[_case] == nullptr) {
+            std::cout << "af" << std::endl;
+            this->children[_case] = new Octree(c[_case], this->depth + 1);
+        }
+
+        this->children[_case]->insert_triangle(v0, v1, v2, triangle_idx);
+    }
+}
+
+void Octree::insert_triangles(Vertex *vertices, Triangle *triangles, size_t n_triangles) {
+    for (size_t i = 0; i < n_triangles; i++) {
+        this->insert_triangle(
+                vertices[triangles[i].idx_a].position,
+                vertices[triangles[i].idx_b].position,
+                vertices[triangles[i].idx_c].position,
+                i
+        );
+    }
+}
+
+/************************************************************************************/
+/*                                 Misc. functions                                  */
 /************************************************************************************/
 void AABB::recalculate(Vertex *vertices, int n_vertices) {
     vec3 min(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -235,8 +302,6 @@ void Entity::rotate(vec3 rot) {
 
     // recalculate aabb
     this->aabb.recalculate(this->vertices, this->n_vertices);
-
-    // TODO rotate on y and z. Preferable not one at a time.
 }
 
 /************************************************************************************/
@@ -402,6 +467,47 @@ bool AABB::intersects(const Ray &ray) {
             this->max.z,
             ray
     );
+}
+
+__host__ 
+bool AABB::contains_triangle(vec3 v0, vec3 v1, vec3 v2) {
+    return triangle_inside_aabb(
+            this->min.x, this->min.y, this->min.z, 
+            this->max.x, this->max.y, this->max.z,
+            v0, v1, v2
+    );
+}
+
+__host__ 
+inline bool triangle_inside_aabb(
+        float min_x,
+        float min_y,
+        float min_z,
+        float max_x,
+        float max_y,
+        float max_z,
+        vec3 v0,
+        vec3 v1,
+        vec3 v2
+) {
+    return  inside_aabb(min_x, min_y, min_z, max_x, max_y, max_z, v0) &&
+            inside_aabb(min_x, min_y, min_z, max_x, max_y, max_z, v1) &&
+            inside_aabb(min_x, min_y, min_z, max_x, max_y, max_z, v2);
+}
+
+__host__ 
+inline bool inside_aabb(
+        float min_x,
+        float min_y,
+        float min_z,
+        float max_x,
+        float max_y,
+        float max_z,
+        const vec3 &point
+) {
+    return  point.x > min_x && point.x < max_x &&
+            point.y > min_y && point.y < max_y &&
+            point.z > min_z && point.z < max_z;
 }
 
 __device__
