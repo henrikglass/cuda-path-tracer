@@ -20,7 +20,7 @@ int main(void) {
 
     //teapot.scale(0.02f);
     teapot.translate(vec3(500+205.3 - 0.5f, 500+ 0.5f, -82.3 + 3));
-    teapot.rotate(vec3(-3.141592f/2.0f, 0, 0));
+    teapot.rotate(vec3(-3.141592f/1.7f, 3.141592f/8.0f, -3.141592f/8.0f));
     teapot.print();
 
     //scene.add_entity(sphere);

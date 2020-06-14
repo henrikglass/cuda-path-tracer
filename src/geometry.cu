@@ -206,22 +206,30 @@ void Entity::translate(vec3 delta) {
 void Entity::rotate(vec3 rot) {
     if (this->shape == SPHERE)
         return;
+
+    // a = alpha, b = beta, g = gamma. For rotation on z, y and x respectively.
+    float cos_a = cos(rot.z);
+    float sin_a = sin(rot.z);
+    float cos_b = cos(rot.y);
+    float sin_b = sin(rot.y);
+    float cos_g = cos(rot.x);
+    float sin_g = sin(rot.x);
+
+    // Rotation matrix R:
+    vec3 R0(/*[0,0]*/ cos_a * cos_b, /*[1,0]*/  cos_a*sin_b*sin_g - sin_a*cos_g, /*[2,0]*/  cos_a*sin_b*cos_g + sin_a*sin_g);
+    vec3 R1(/*[0,1]*/ sin_a * cos_b, /*[1,1]*/  sin_a*sin_b*sin_g + cos_a*cos_g, /*[2,1]*/  sin_a*sin_b*cos_g - cos_a*sin_g);
+    vec3 R2(/*[0,2]*/ -sin_b,        /*[1,2]*/  cos_b*sin_g,                     /*[2,2]*/  cos_b*cos_g);
     
     // rotate on x
     for (size_t i = 0; i < this->n_vertices; i++) {
+        // rotate vertex positions
         vec3 v = this->vertices[i].position - this->center;
-        v = vec3(
-            v.x,
-            v.y*cos(rot.x) - v.z*sin(rot.x),
-            v.y*sin(rot.x) - v.z*cos(rot.x)
-        );
+        v = vec3(dot(v, R0), dot(v, R1), dot(v, R2));
         this->vertices[i].position = v + this->center;
+
+        // rotate vertex normals
         vec3 n = this->vertices[i].normal;
-        n = vec3(
-            n.x,
-            n.y*cos(rot.x) - n.z*sin(rot.x),
-            n.y*sin(rot.x) - n.z*cos(rot.x)
-        );
+        n = vec3(dot(n, R0), dot(n, R1), dot(n, R2));
         this->vertices[i].normal = n;
     }
 
