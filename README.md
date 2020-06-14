@@ -4,6 +4,6 @@ A path tracer implemented using cuda.
 # Credits
 This project uses open source components, listed below.
 
-Project: OBJ-Loader https://github.com/Bly7/OBJ-Loader
-Copyright (c) 2016 Robert Smith
-License (MIT): https://github.com/Bly7/OBJ-Loader/blob/master/LICENSE.txt
+Project: tinyobjloader https://github.com/tinyobjloader/tinyobjloader
+Copyright (c) 2012-2019 Syoyo Fujita and many contributors
+License (MIT): https://github.com/tinyobjloader/tinyobjloader/blob/master/LICENSE
