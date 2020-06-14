@@ -109,7 +109,7 @@ Entity::Entity(const std::string &path, const Material &material) {
 
     // normalize normals
     if (no_normals) {
-        for (int i = 0; i < this->n_vertices; i++) {
+        for (size_t i = 0; i < this->n_vertices; i++) {
             this->vertices[i].normal.normalize();
         }
     }
@@ -208,7 +208,7 @@ void Entity::rotate(vec3 rot) {
         return;
     
     // rotate on x
-    for (int i = 0; i < this->n_vertices; i++) {
+    for (size_t i = 0; i < this->n_vertices; i++) {
         vec3 v = this->vertices[i].position - this->center;
         v = vec3(
             v.x,

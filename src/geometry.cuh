@@ -125,8 +125,8 @@ public:
     Vertex *vertices      = nullptr;
     Triangle *d_triangles = nullptr;
     Vertex *d_vertices    = nullptr;
-    long n_triangles;
-    long n_vertices;
+    size_t n_triangles;
+    size_t n_vertices;
 
 };
 

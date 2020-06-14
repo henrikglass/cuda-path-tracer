@@ -10,7 +10,7 @@ void Scene::add_entity(Entity entity) {
 }
 
 void Scene::copy_to_device() {
-    for (int i = 0; i < this->entities.size(); i++) {
+    for (size_t i = 0; i < this->entities.size(); i++) {
         entities[i].copy_to_device();
     }
     long size = this->entities.size()*sizeof(Entity);

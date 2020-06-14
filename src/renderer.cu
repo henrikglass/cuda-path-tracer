@@ -102,21 +102,14 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
 
     // color pixel
     //buf[pixelIdx] = vec3(1.0f, 0.0f, 1.0f);
-    buf[pixelIdx] =  (hit.normal + vec3(1,1,1)) / 2;
+    //buf[pixelIdx] =  (hit.normal + vec3(1,1,1)) / 2;
     
+    buf[pixelIdx].x = hit.entity->material.albedo.x;
+    buf[pixelIdx].y = hit.entity->material.albedo.y;
+    buf[pixelIdx].z = hit.entity->material.albedo.z;
 
 
 
-
-
-
-
-
-
-    
-    //buf[pixelIdx].x = hit.entity->material.albedo.x;
-    //buf[pixelIdx].y = hit.entity->material.albedo.y;
-    //buf[pixelIdx].z = hit.entity->material.albedo.z;
 
     // simple gradient render
     //buf[pixelIdx].x = float(x) / camera.resolution.x;
