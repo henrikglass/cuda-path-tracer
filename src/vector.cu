@@ -9,7 +9,7 @@ vec2 vec2::operator-(const vec2& v) const {
 }
 
 vec2 vec2::normalized() const {
-    float norm = sqrt(this->x * this->x + this->y * this->y);
+    float norm = sqrtf(this->x * this->x + this->y * this->y);
     return vec2(this->x / norm, this->y / norm);
 }
 
@@ -32,7 +32,7 @@ vec3 vec3::operator-() const {
 }
 
 vec3 vec3::normalized() const {
-    float norm = sqrt(this->x * this->x + this->y * this->y + this->z * this->z);
+    float norm = sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
     return vec3(this->x / norm, this->y / norm, this->z / norm);
 }
 

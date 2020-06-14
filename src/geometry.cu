@@ -1,37 +1,43 @@
 #include "geometry.cuh"
-#include "OBJ_Loader.h"
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
+#include <vector>
 #include "util.cuh"
 
-//#pragma hd_warning_disable
-//#include "glm/glm/glm.hpp"
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 
 /************************************************************************************/
 /*                                    Constructors                                  */
 /************************************************************************************/
 
 Entity::Entity(const std::string &path, const Material &material) {
-    objl::Loader ojb_loader;
-    bool err_nil = ojb_loader.LoadFile(path);
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn;
+    std::string err;
 
-    // Check for errors or unwelcome extra meshes
-    if (!err_nil) {
-        std::cerr << "Error loading " << path << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    if (ojb_loader.LoadedMeshes.size() != 1) {
-        std::cerr << path << " Does not consist of only 1 mesh" << std::endl;
-        exit(EXIT_FAILURE);
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,  path.c_str());
+
+    if(!warn.empty()) {
+        std::cout << warn << std::endl;
     }
 
-    // otherwise get the mesh
-    objl::Mesh mesh = ojb_loader.LoadedMeshes[0];
+    if(!err.empty()) {
+        std::cout << err << std::endl;
+    }
+
+    if (!ret || shapes.size() != 1) {
+        exit(1);
+    }
+
+    bool no_normals = (attrib.normals.size() / 3) == 0;
 
     // allocate space
-    this->n_vertices  = mesh.Vertices.size();
-    this->n_triangles = mesh.Indices.size() / 3;
+    this->n_vertices  = attrib.vertices.size() / 3;
+    this->n_triangles = shapes[0].mesh.num_face_vertices.size();
     this->vertices  = new Vertex[this->n_vertices];
     this->triangles = new Triangle[this->n_triangles];
     
@@ -39,21 +45,24 @@ Entity::Entity(const std::string &path, const Material &material) {
     vec3 min(FLT_MAX, FLT_MAX, FLT_MAX);
     vec3 max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-    // get vertices
-    for (int i = 0; i < mesh.Vertices.size(); i++) {
+    // load vertices
+    size_t index_offset = 0;
+    for (size_t v = 0; v < this->n_vertices; v++) {
         vec3 position(
-                mesh.Vertices[i].Position.X,
-                mesh.Vertices[i].Position.Y,
-                mesh.Vertices[i].Position.Z
+                (float) attrib.vertices[index_offset + 0],
+                (float) attrib.vertices[index_offset + 1],
+                (float) attrib.vertices[index_offset + 2]
         );
-        vec3 normal(
-                mesh.Vertices[i].Normal.X,
-                mesh.Vertices[i].Normal.Y,
-                mesh.Vertices[i].Normal.Z
-        );
-        normal.normalize();
 
-        // update min, max
+        vec3 normal(0.0f, 0.0f, 0.0f);
+        if(!no_normals) {
+            normal.x = attrib.normals[index_offset + 0];
+            normal.y = attrib.normals[index_offset + 1];
+            normal.z = attrib.normals[index_offset + 2];
+            normal.normalize();
+        }
+
+        // update min, max for aabb
         min.x = (position.x < min.x) ? position.x : min.x;
         min.y = (position.y < min.y) ? position.y : min.y;
         min.z = (position.z < min.z) ? position.z : min.z;
@@ -61,30 +70,49 @@ Entity::Entity(const std::string &path, const Material &material) {
         max.y = (position.y > max.y) ? position.y : max.y;
         max.z = (position.z > max.z) ? position.z : max.z;
 
-        this->vertices[i] = Vertex(position, normal);
+        this->vertices[v] = Vertex(position, normal);
+        index_offset += 3;
     }
 
-    // get triangles
-    for (int i = 0; i < mesh.Indices.size(); i += 3) {
-        this->triangles[i / 3] = Triangle(
-                mesh.Indices[i],
-                mesh.Indices[i + 1],
-                mesh.Indices[i + 2]
+    // load triangles
+    tinyobj::shape_t shape = shapes[0];
+    index_offset = 0;
+    for (size_t f = 0; f < this->n_triangles; f++) {
+        if ((int)shape.mesh.num_face_vertices[f] != 3) {
+            std::cerr << "OBJ file faces must be triangles" << std::endl;
+            exit(1);
+        }
+
+        this->triangles[f] = Triangle(
+                shape.mesh.indices[index_offset + 0].vertex_index,
+                shape.mesh.indices[index_offset + 1].vertex_index,
+                shape.mesh.indices[index_offset + 2].vertex_index
         );
+
+        if (no_normals) {
+            int v0_idx = this->triangles[f].idx_a;
+            int v1_idx = this->triangles[f].idx_b;
+            int v2_idx = this->triangles[f].idx_c;
+            vec3 v0 = this->vertices[v0_idx].position;
+            vec3 v1 = this->vertices[v1_idx].position;
+            vec3 v2 = this->vertices[v2_idx].position;
+            vec3 e1 = v1 - v0;
+            vec3 e2 = v2 - v0;
+            vec3 t_normal = cross(e1, e2).normalized();
+            this->vertices[v0_idx].normal = this->vertices[v0_idx].normal + t_normal;
+            this->vertices[v1_idx].normal = this->vertices[v1_idx].normal + t_normal;
+            this->vertices[v2_idx].normal = this->vertices[v2_idx].normal + t_normal;
+        }
+
+        index_offset += 3;
     }
 
-    std::cout << "KALAS" << std::endl;
-    std::cout << this->vertices[2727].normal << std::endl;
-    std::cout << this->vertices[2728].normal << std::endl;
-    std::cout << this->vertices[2729].normal << std::endl;
-
-    // debug print all triangle vertices
-    /*for(int i = 0; i < this->n_triangles; i++) {
-        std::cout << "tri: " << i << std::endl;
-        std::cout << this->vertices[this->triangles[i].idx_a].position << std::endl;
-        std::cout << this->vertices[this->triangles[i].idx_b].position << std::endl;
-        std::cout << this->vertices[this->triangles[i].idx_c].position << std::endl;
-    }*/
+    // normalize normals
+    if (no_normals) {
+        for (int i = 0; i < this->n_vertices; i++) {
+            this->vertices[i].normal.normalize();
+        }
+    }
 
     // create AABB
     this->aabb = AABB(min, max);
@@ -96,7 +124,8 @@ Entity::Entity(const std::string &path, const Material &material) {
             (min.z + max.z) / 2
     );
 
-    // set shape
+    // set shape & material
+    this->material = material;
     this->shape = TRIANGLE_MESH;
 }
 
@@ -187,6 +216,13 @@ void Entity::rotate(vec3 rot) {
             v.y*sin(rot.x) - v.z*cos(rot.x)
         );
         this->vertices[i].position = v + this->center;
+        vec3 n = this->vertices[i].normal;
+        n = vec3(
+            n.x,
+            n.y*cos(rot.x) - n.z*sin(rot.x),
+            n.y*sin(rot.x) - n.z*cos(rot.x)
+        );
+        this->vertices[i].normal = n;
     }
 
     // recalculate aabb
@@ -238,28 +274,18 @@ bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, int n_e
     }
 
     // if hit entity has smooth_shading enabled, adjust the normal
-    /*Triangle *tr = is.triangle;
+    Triangle *tr = is.triangle;
     Entity *e = is.entity;
     if (is_hit && tr != nullptr && e->material.smooth_shading) {
         float u = is.u;
         float v = is.v;
         float w = 1.0f - (u + v);
-        printf("idxs: %d %d %d\n", tr->idx_a, tr->idx_b, tr->idx_c);
         vec3 v0_normal = e->d_vertices[tr->idx_a].normal;
         vec3 v1_normal = e->d_vertices[tr->idx_b].normal;
         vec3 v2_normal = e->d_vertices[tr->idx_c].normal;
-        printf("v0 normal: (%g, %g, %g)\n", v0_normal.x, v0_normal.y, v0_normal.z);
-        printf("v1 normal: (%g, %g, %g)\n", v1_normal.x, v1_normal.y, v1_normal.z);
-        printf("v2 normal: (%g, %g, %g)\n", v2_normal.x, v2_normal.y, v2_normal.z);
-        printf("flat normal: (%g, %g, %g)\n", is.normal.x, is.normal.y, is.normal.z);
-        //is.normal = -(u * v1_normal + v * v2_normal + w * v0_normal); // pure guess
-        //is.normal = -(u * v2_normal + v * v1_normal + w * v0_normal); // pure guess
-        //is.normal = u * v0_normal + v * v2_normal + w * v1_normal; // pure guess
-        //is.normal = u * v2_normal + v * v0_normal + w * v1_normal; // pure guess
-        //is.normal = u * v1_normal + v * v0_normal + w * v2_normal; // pure guess
-        //is.normal = u * v0_normal + v * v1_normal + w * v2_normal; // pure guess
-        //is.normal.normalize();
-    }*/
+        is.normal = u * v1_normal + v * v2_normal + w * v0_normal; // pure guess
+        is.normal.normalize();
+    }
 
     return is_hit;
 }

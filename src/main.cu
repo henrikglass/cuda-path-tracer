@@ -9,8 +9,6 @@ int main(void) {
     Entity teapot("examples/teapot/utah.obj", m);
     Scene scene;
 
-    std::cout << (cross(vec3(1,0,0),vec3(0,1,0))) << std::endl;
-
     // test transform
     sphere.scale(0.5f);
     sphere.translate(vec3(0.5, 0, 0));
@@ -30,11 +28,13 @@ int main(void) {
 
 
     ivec2 res = ivec2(1024, 768);
-    //ivec2 res = ivec2(8, 8);
+    ////ivec2 res = ivec2(8, 8);
     Camera camera(vec3(500,500,-170), vec3(0,0,1), res, res.y);
     Image image = render(camera, scene);
     std::cout << image.resolution << std::endl;
     save_ppm("output.ppm", image);
+
+
     //std::cout << render(v6, v7) << std::endl;
     //std::cout << sizeof(vec3) << std::endl;
     //std::cout << sizeof(vec2) << std::endl;
