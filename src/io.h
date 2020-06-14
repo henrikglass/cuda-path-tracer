@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 #include "vector.cuh"
-#include "image.cuh"
+#include "image.h"
 
 void save_ppm(
         const std::string& filepath,

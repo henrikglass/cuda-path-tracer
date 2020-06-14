@@ -5,7 +5,7 @@
 
 #include <string>
 #include <float.h>
-#include "material.cuh"
+#include "material.h"
 #include "vector.cuh"
 
 enum Shape {SPHERE, TRIANGLE_MESH};

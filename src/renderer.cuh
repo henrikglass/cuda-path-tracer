@@ -3,10 +3,10 @@
 
 #include <vector>
 
-#include "camera.cuh"
+#include "camera.h"
 #include "scene.cuh"
 #include "vector.cuh"
-#include "image.cuh"
+#include "image.h"
 
 Image render(const Camera &camera, Scene &scene);
 

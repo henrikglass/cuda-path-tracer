@@ -1,4 +1,5 @@
 #include <iostream>
+#include "cuda_runtime.h"
 #include "renderer.cuh"
 #include "io.h"
 
