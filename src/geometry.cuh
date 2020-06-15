@@ -84,8 +84,8 @@ struct Octree {
             Intersection &bestHit,
             Entity *entity
     );
-    Octree *children[8];
-    Octree *d_children[8]; // TODO make copy_to_device() place device addresses in same array as host addresses
+    Octree *children[8]{nullptr};
+    Octree *d_children[8]{nullptr}; // TODO make copy_to_device() place device addresses in same array as host addresses
     std::vector<int> triangle_indices;
     int *d_triangle_indices = nullptr;
     int n_triangle_indices = 0;

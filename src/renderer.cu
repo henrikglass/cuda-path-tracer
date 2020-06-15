@@ -37,7 +37,9 @@ Image render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaMalloc(&buf, buf_size));
 
     // move scene to device memory
+    std::cout << "copying scene to device..." << std::endl;
     scene.copy_to_device();
+    std::cout << "done!" << std::endl;
 
     // device info debug print
     int devID = 0;

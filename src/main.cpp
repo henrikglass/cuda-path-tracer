@@ -19,12 +19,16 @@ int main(void) {
     teapot.print();
 
     //teapot.scale(0.02f);
+    std::cout << "transforming " << std::endl;
     teapot.translate(vec3(500+205.3 - 0.5f, 500+ 0.5f, -82.3 + 3));
     teapot.rotate(vec3(-3.141592f/1.7f, 3.141592f/8.0f, -3.141592f/8.0f));
     teapot.print();
+    std::cout << "done " << std::endl;
+    std::cout << "constrcuting octree " << std::endl;
     teapot.construct_octree();
+    std::cout << "done " << std::endl;
     //teapot.octree->pretty_print(0);
-    std::cout << "-\n-\n-\n-\n-\n-\n" << std::endl;
+    //std::cout << "-\n-\n-\n-\n-\n-\n" << std::endl;
     //Vertex v0 = teapot.vertices[teapot.triangles[48].idx_a];
     //Vertex v1 = teapot.vertices[teapot.triangles[48].idx_b];
     //Vertex v2 = teapot.vertices[teapot.triangles[48].idx_c];
@@ -35,7 +39,7 @@ int main(void) {
     //scene.add_entity(sphere);
     //scene.add_entity(sphere2);
     scene.add_entity(teapot);
-    std::cout << sizeof(Octree) << std::endl;
+    //std::cout << sizeof(Octree) << std::endl;
 
 
     // rendering

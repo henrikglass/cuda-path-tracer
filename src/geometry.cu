@@ -1,4 +1,4 @@
-#define MAX_OCTREE_DEPTH 0
+#define MAX_OCTREE_DEPTH 3
 
 #include "geometry.cuh"
 #include <math.h>
@@ -179,10 +179,8 @@ void Octree::copy_to_device() {
             continue;
         this->children[i]->copy_to_device();
         long size = sizeof(Octree);
-        std::cout << this->d_children[i] << std::endl;
         gpuErrchk(cudaMalloc(&(this->d_children[i]), size));
-        std::cout << this->d_children[i] << std::endl;
-        //cudaMemcpy(this->d_children[i], this->children[i], size, cudaMemcpyHostToDevice);
+        cudaMemcpy(this->d_children[i], this->children[i], size, cudaMemcpyHostToDevice);
         gpuErrchk(cudaPeekAtLastError());
     }
 }
@@ -200,6 +198,7 @@ bool Octree::get_closest_intersection(
         Entity *entity
 ) {
     bool hit = false;
+    //printf("n_idx: %d\n", this->n_triangle_indices);
     for (int i = 0; i < this->n_triangle_indices; i++) {
         int tri_idx = this->d_triangle_indices[i];
         Triangle *triangle = &(triangles[tri_idx]);
@@ -210,6 +209,13 @@ bool Octree::get_closest_intersection(
     }
 
     // TODO CHILDREN
+    // naive
+    for (int i = 0; i < 8; i++) {
+        if(this->d_children[i] != nullptr) {
+            //printf("octree traversal\n");
+            hit = d_children[i]->get_closest_intersection(vertices, triangles, ray, bestHit, entity) || hit;
+        }
+    }
 
     return hit;
 }
