@@ -52,21 +52,6 @@ struct AABB {
     vec3 max;
 };
 
-struct Octree {
-    Octree(AABB aabb, int depth) : children() {
-        this->region = aabb;
-        this->depth = depth;
-        triangle_indices = std::vector<int>();
-    }
-    __host__ void insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx);
-    __host__ void insert_triangles(Vertex *vertices, Triangle *triangles, size_t n_triangles);
-    Octree *children[8];
-    std::vector<int> triangle_indices;
-    int  *d_triangle_indices = nullptr;
-    int depth;
-    AABB region;
-};
-
 class Entity;
 
 struct Intersection {
@@ -81,22 +66,50 @@ struct Intersection {
     float u, v;
 };
 
+struct Octree {
+    Octree(AABB aabb, int depth) : children() {
+        this->region = aabb;
+        this->depth = depth;
+        triangle_indices = std::vector<int>();
+    }
+    __host__ void pretty_print(int child_nr);
+    __host__ void copy_to_device();
+    __host__ void free_from_device();
+    __host__ void insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx);
+    __host__ void insert_triangles(Vertex *vertices, Triangle *triangles, size_t n_triangles);
+    __device__ bool get_closest_intersection(
+            Vertex *vertices, 
+            Triangle *triangles, 
+            const Ray &ray, 
+            Intersection &bestHit,
+            Entity *entity
+    );
+    Octree *children[8];
+    Octree *d_children[8]; // TODO make copy_to_device() place device addresses in same array as host addresses
+    std::vector<int> triangle_indices;
+    int *d_triangle_indices = nullptr;
+    int n_triangle_indices = 0;
+    int depth;
+    AABB region;
+};
+
 class Entity {
 private:
     // for triangle mesh case:
-    Triangle *triangles   = nullptr;
-    Vertex *vertices      = nullptr;
-    Triangle *d_triangles = nullptr;
-    Vertex *d_vertices    = nullptr;
-    size_t n_triangles;
-    size_t n_vertices;
+    //Octree *octree        = nullptr;
+    //Vertex *vertices      = nullptr;
+    //Vertex *d_vertices    = nullptr;
+    //Triangle *triangles   = nullptr;
+    //Triangle *d_triangles = nullptr;
+    //size_t n_triangles;
+    //size_t n_vertices;
     AABB aabb;
 
     // for sphere case:
     float radius;
 
     // for general case:
-    vec3 center;
+    vec3 center; // not necessarily center of aabb
 
     // misc. functions
     __device__ bool get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit);
@@ -116,6 +129,9 @@ public:
     // memory management
     void copy_to_device();
     void free_from_device();
+
+    // Octree
+    __host__ void construct_octree();
 
     // intersection functions
     __device__ bool get_closest_intersection(const Ray &ray, Intersection &bestHit);
@@ -138,15 +154,26 @@ public:
     Material material;
 
     // TODO move to private
+    Octree *octree        = nullptr;
+    Octree *d_octree      = nullptr;
+    Vertex *vertices      = nullptr;
+    Vertex *d_vertices    = nullptr;
+    Triangle *triangles   = nullptr;
+    Triangle *d_triangles = nullptr;
+    size_t n_triangles;
+    size_t n_vertices;
 
 };
 
-__device__ bool intersects_triangle(
-    const Triangle &tr,
-    Intersection &bestHit,
-    const Ray &ray
+__device__ bool intersect_triangle(
+        vec3 v0, 
+        vec3 v1, 
+        vec3 v2, 
+        Triangle *triangle,
+        Entity *entity, 
+        Intersection &bestHit, 
+        const Ray &ray
 );
-
 
 __host__ inline bool triangle_inside_aabb(
         float min_x,

@@ -1,4 +1,4 @@
-#define MAX_OCTREE_DEPTH 4
+#define MAX_OCTREE_DEPTH 0
 
 #include "geometry.cuh"
 #include <math.h>
@@ -14,6 +14,9 @@
 /*                                    Constructors                                  */
 /************************************************************************************/
 
+/*
+ * Triangle mesh.
+ */
 Entity::Entity(const std::string &path, const Material &material) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -131,6 +134,9 @@ Entity::Entity(const std::string &path, const Material &material) {
     this->shape = TRIANGLE_MESH;
 }
 
+/*
+ * Sphere.
+ */
 Entity::Entity(const vec3 &center, float radius, const Material &material) {
     this->shape     = SPHERE;
     this->center    = center;
@@ -141,6 +147,72 @@ Entity::Entity(const vec3 &center, float radius, const Material &material) {
 /************************************************************************************/
 /*                                   Octree stuff                                   */
 /************************************************************************************/
+
+void Entity::construct_octree() {
+    // construct Octree
+    this->octree = new Octree(this->aabb, 0);
+    this->octree->insert_triangles(this->vertices, this->triangles, this->n_triangles);
+}
+
+void Octree::pretty_print(int child_nr) {
+    for(int i = 0; i < this->depth; i++) printf("  ");
+    printf("[%d] : ", child_nr);
+    for(size_t i = 0; i < this->triangle_indices.size(); i++) printf("%d, ", this->triangle_indices[i]);
+    printf("\n");
+    for(int i = 0; i < 8; i++) {
+        if(this->children[i] != nullptr){
+            this->children[i]->pretty_print(i);
+        }
+    }
+}
+
+void Octree::copy_to_device() {
+    // copy triangle indices
+    long size = this->triangle_indices.size()*sizeof(int);
+    gpuErrchk(cudaMalloc(&this->d_triangle_indices, size));
+    cudaMemcpy(this->d_triangle_indices, &(this->triangle_indices[0]), size, cudaMemcpyHostToDevice);
+    gpuErrchk(cudaPeekAtLastError());
+
+    // copy children
+    for (int i = 0; i < 8; i++) {
+        if (this->children[i] == nullptr)
+            continue;
+        this->children[i]->copy_to_device();
+        long size = sizeof(Octree);
+        std::cout << this->d_children[i] << std::endl;
+        gpuErrchk(cudaMalloc(&(this->d_children[i]), size));
+        std::cout << this->d_children[i] << std::endl;
+        //cudaMemcpy(this->d_children[i], this->children[i], size, cudaMemcpyHostToDevice);
+        gpuErrchk(cudaPeekAtLastError());
+    }
+}
+
+void Octree::free_from_device() {
+    // TODO
+}
+
+__device__
+bool Octree::get_closest_intersection(
+        Vertex *vertices, 
+        Triangle *triangles, 
+        const Ray &ray, 
+        Intersection &bestHit,
+        Entity *entity
+) {
+    bool hit = false;
+    for (int i = 0; i < this->n_triangle_indices; i++) {
+        int tri_idx = this->d_triangle_indices[i];
+        Triangle *triangle = &(triangles[tri_idx]);
+        vec3 v0 = vertices[triangle->idx_a].position;
+        vec3 v1 = vertices[triangle->idx_b].position;
+        vec3 v2 = vertices[triangle->idx_c].position;
+        hit = intersect_triangle(v0, v1, v2, triangle, entity, bestHit, ray) || hit;
+    }
+
+    // TODO CHILDREN
+
+    return hit;
+}
 
 void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     float x_min = this->region.min.x;
@@ -177,14 +249,29 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
         _case = (c[i].contains_triangle(v0, v1, v2)) ? i : _case;
     }
 
+    if (triangle_idx == 48) {
+        std::cout << _case << std::endl;
+        std::cout << "vector: " << v0 << v1 << v2 << std::endl;
+        std::cout << "parent region: " << this->region.min << " to " << this->region.max << std::endl;
+        std::cout << "c0: " << c[0].min << " to " << c[0].max << std::endl;
+        std::cout << "c1: " << c[1].min << " to " << c[1].max << std::endl;
+        std::cout << "c2: " << c[2].min << " to " << c[2].max << std::endl;
+        std::cout << "c3: " << c[3].min << " to " << c[3].max << std::endl;
+        std::cout << "c4: " << c[4].min << " to " << c[4].max << std::endl;
+        std::cout << "c5: " << c[5].min << " to " << c[5].max << std::endl;
+        std::cout << "c6: " << c[6].min << " to " << c[6].max << std::endl;
+        std::cout << "c7: " << c[7].min << " to " << c[7].max << std::endl;
+    }
+
     // Unless the math is wrong, there's exactly one possible case (no overridden values)
     if (_case == -1 || this->depth == MAX_OCTREE_DEPTH) {
-        std::cout << "asd" << std::endl;
-        std::cout << this->triangle_indices.size() << std::endl;
+        //std::cout << "asd" << std::endl;
+        //std::cout << this->triangle_indices.size() << std::endl;
         this->triangle_indices.push_back(triangle_idx);
+        this->n_triangle_indices++;
     } else {
         if (this->children[_case] == nullptr) {
-            std::cout << "af" << std::endl;
+            //std::cout << "af" << std::endl;
             this->children[_case] = new Octree(c[_case], this->depth + 1);
         }
 
@@ -324,6 +411,15 @@ void Entity::copy_to_device() {
         gpuErrchk(cudaMalloc(&this->d_triangles, triangles_size));
         cudaMemcpy(this->d_triangles, this->triangles, triangles_size, cudaMemcpyHostToDevice);
         gpuErrchk(cudaPeekAtLastError());
+
+        // copy octree
+        // TODO nullcheck for entities that don't have octrees
+        if (this->octree != nullptr) {
+            this->octree->copy_to_device();
+            gpuErrchk(cudaMalloc(&this->d_octree, sizeof(Octree)));
+            cudaMemcpy(this->d_octree, this->octree, sizeof(Octree), cudaMemcpyHostToDevice);
+            gpuErrchk(cudaPeekAtLastError());
+        }
     }
 }
 
@@ -400,24 +496,48 @@ __device__
 bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit) {
     if (!this->aabb.intersects(ray))
         return false;
-    bool hit = false;
-    for (int i = 0; i < this->n_triangles; i++) {
-        hit = intersects_triangle(&(this->d_triangles[i]), bestHit, ray) || hit;
+    
+    // no octree. Check against all triangles.
+    if (this->octree == nullptr) {
+        bool hit = false;
+        for (int i = 0; i < this->n_triangles; i++) {
+            hit = intersects_triangle(&(this->d_triangles[i]), bestHit, ray) || hit;
+        }
+        return hit;
+    } else {
+        return this->d_octree->get_closest_intersection(
+                this->d_vertices,
+                this->d_triangles, 
+                ray, 
+                bestHit, 
+                this
+        );
     }
-    return hit;
 }
 
+__device__
+bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHit, const Ray &ray) {
+    vec3 v0 = this->d_vertices[triangle->idx_a].position;
+    vec3 v1 = this->d_vertices[triangle->idx_b].position;
+    vec3 v2 = this->d_vertices[triangle->idx_c].position;
+    return intersect_triangle(v0, v1, v2, triangle, this, bestHit, ray);
+}
 
 /*
  * Tomas Akenine-Möller and Ben Trumbore's algorithm.
  *
  * http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/raytri_tam.pdf
  */
-__device__
-bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHit, const Ray &ray) {
-    vec3 v0 = this->d_vertices[triangle->idx_a].position;
-    vec3 v1 = this->d_vertices[triangle->idx_b].position;
-    vec3 v2 = this->d_vertices[triangle->idx_c].position;
+__device__ 
+bool intersect_triangle(
+        vec3 v0, 
+        vec3 v1, 
+        vec3 v2, 
+        Triangle *triangle,
+        Entity *entity, 
+        Intersection &bestHit, 
+        const Ray &ray
+) {
     vec3 e1, e2, pvec, tvec, qvec;
     float t, u, v, det, inv_det;
 
@@ -446,7 +566,7 @@ bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHit, cons
         bestHit.distance = t;
         bestHit.position = ray.origin + t * ray.direction;
         bestHit.normal = cross(e1, e2).normalized(); // TODO SMOOTH SHADING
-        bestHit.entity = this;
+        bestHit.entity = entity;
         bestHit.triangle = triangle;
         bestHit.u = u;
         bestHit.v = v;

@@ -25,15 +25,6 @@ Image render(const Camera &camera, Scene &scene) {
         }
     }
 
-    // device info debug print
-    int devID = 0;
-    cudaDeviceProp props;
-
-    //Get GPU information
-    cudaGetDevice(&devID);
-    cudaGetDeviceProperties(&props, devID);
-    printf("Device %d: \"%s\" with Compute %d.%d capability\n",
-           devID, props.name, props.major, props.minor);
     // ------------------------------- debug ------------------------------
 
 
@@ -47,6 +38,16 @@ Image render(const Camera &camera, Scene &scene) {
 
     // move scene to device memory
     scene.copy_to_device();
+
+    // device info debug print
+    int devID = 0;
+    cudaDeviceProp props;
+
+    //Get GPU information
+    cudaGetDevice(&devID);
+    cudaGetDeviceProperties(&props, devID);
+    printf("Device %d: \"%s\" with Compute %d.%d capability\n",
+           devID, props.name, props.major, props.minor);
 
     // Decide on tile size, # of threads and # of blocks
     int tile_size = 8; // 8x8 pixels
@@ -68,6 +69,7 @@ Image render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaPeekAtLastError());
 
     // return result
+    //std::vector<vec3> result_pixels(n_pixels);
     return Image(result_pixels, camera.resolution);
 }
 
