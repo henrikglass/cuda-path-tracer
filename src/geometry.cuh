@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#define EPSILON 0.000001f
+#define EPSILON 0.00000001f
 
 #include <string>
 #include <float.h>
