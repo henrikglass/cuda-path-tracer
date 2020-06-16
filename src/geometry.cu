@@ -170,8 +170,7 @@ void Octree::copy_to_device() {
     // copy triangle indices
     long size = this->triangle_indices.size()*sizeof(int);
     gpuErrchk(cudaMalloc(&this->d_triangle_indices, size));
-    cudaMemcpy(this->d_triangle_indices, &(this->triangle_indices[0]), size, cudaMemcpyHostToDevice);
-    gpuErrchk(cudaPeekAtLastError());
+    gpuErrchk(cudaMemcpy(this->d_triangle_indices, &(this->triangle_indices[0]), size, cudaMemcpyHostToDevice));
 
     // copy children
     for (int i = 0; i < 8; i++) {
@@ -180,8 +179,8 @@ void Octree::copy_to_device() {
         this->children[i]->copy_to_device();
         long size = sizeof(Octree);
         gpuErrchk(cudaMalloc(&(this->d_children[i]), size));
-        cudaMemcpy(this->d_children[i], this->children[i], size, cudaMemcpyHostToDevice);
-        gpuErrchk(cudaPeekAtLastError());
+        gpuErrchk(cudaMemcpy(this->d_children[i], this->children[i], size, cudaMemcpyHostToDevice));
+        //gpuErrchk(cudaPeekAtLastError());
     }
 }
 
@@ -397,8 +396,8 @@ void Entity::copy_to_device() {
         if (this->octree != nullptr) {
             this->octree->copy_to_device();
             gpuErrchk(cudaMalloc(&this->d_octree, sizeof(Octree)));
-            cudaMemcpy(this->d_octree, this->octree, sizeof(Octree), cudaMemcpyHostToDevice);
-            gpuErrchk(cudaPeekAtLastError());
+            gpuErrchk(cudaMemcpy(this->d_octree, this->octree, sizeof(Octree), cudaMemcpyHostToDevice));
+            //gpuErrchk(cudaPeekAtLastError());
         }
     }
 }
@@ -518,6 +517,7 @@ bool intersect_triangle(
         Intersection &bestHit, 
         const Ray &ray
 ) {
+
     vec3 e1, e2, pvec, tvec, qvec;
     float t, u, v, det, inv_det;
 

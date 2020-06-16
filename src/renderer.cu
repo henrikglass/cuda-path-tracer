@@ -59,6 +59,12 @@ Image render(const Camera &camera, Scene &scene) {
     );
     dim3 threads(tile_size, tile_size);
 
+    // set stack size limit. (Default proved too little for deep octrees)
+    size_t limit = 0;
+    cudaDeviceGetLimit(&limit, cudaLimitStackSize);
+    cudaDeviceSetLimit( cudaLimitStackSize, 32 * limit );
+    std::cout << "device stack limit: " << (32 * limit / 1024) << "KiB" << std::endl;
+
     // render on device
     device_render<<<blocks, threads>>>(buf, buf_size, camera, scene.d_entities, scene.entities.size());
     gpuErrchk(cudaPeekAtLastError());
@@ -81,8 +87,8 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if ((x >= camera.resolution.x) || (y >= camera.resolution.y))
         return;
-    if (x != 496 || y != 424)
-        return;
+    //if (x != 496 || y != 424)
+    //    return;
 
 
 
