@@ -4,18 +4,29 @@
 #include "io.h"
 
 int main(void) {
-    Material m(vec3(1,0,0), 0, 0, true);
-    Entity sphere(vec3(0,0,2), 0.5f, m);
-    Entity sphere2(vec3(1,1,2), 0.3f, m);
-    Entity teapot("examples/teapot/utah.obj", m);
+    Material m(vec3(1,0,0), 0, 0, false);
+    Entity dragon("examples/dragon/dragon.obj", m);
+    dragon.rotate(vec3(0, 3.1415f/4.0f, 0));
+    dragon.scale(2.0f);
+    dragon.construct_octree();
     Scene scene;
 
     // test transform
-    sphere.scale(0.5f);
-    sphere.translate(vec3(0.5, 0, 0));
+    std::cout << "dragon:" << std::endl;
+    dragon.print();
+
+    scene.add_entity(dragon);
+
+    ivec2 res = ivec2(1024, 768);
+    //ivec2 res = ivec2(4096, 2160);
+    //ivec2 res = ivec2(8, 8);
+    Camera camera(vec3(0,0,-2.5f), vec3(0,0,1), res, res.y);
+    Image image = render(camera, scene);
+    std::cout << image.resolution << std::endl;
+    save_ppm("output.ppm", image);
 
     // test teapot
-    std::cout << "teapot: " << std::endl;
+    /*std::cout << "teapot: " << std::endl;
     teapot.print();
 
     //teapot.scale(0.02f);
@@ -44,11 +55,12 @@ int main(void) {
 
     // rendering
     ivec2 res = ivec2(1024, 768);
+    //ivec2 res = ivec2(4096, 2160);
     //ivec2 res = ivec2(8, 8);
     Camera camera(vec3(500,500,-170), vec3(0,0,1), res, res.y);
     Image image = render(camera, scene);
     std::cout << image.resolution << std::endl;
-    save_ppm("output.ppm", image);
+    save_ppm("output.ppm", image);*/
 
 
     // test Octree

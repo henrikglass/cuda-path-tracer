@@ -81,8 +81,8 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if ((x >= camera.resolution.x) || (y >= camera.resolution.y))
         return;
-    //if (x != 496 || y != 424)
-    //    return;
+    if (x != 496 || y != 424)
+        return;
 
 
 

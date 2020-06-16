@@ -1,4 +1,4 @@
-#define MAX_OCTREE_DEPTH 3
+#define MAX_OCTREE_DEPTH 4
 
 #include "geometry.cuh"
 #include <math.h>
@@ -197,8 +197,11 @@ bool Octree::get_closest_intersection(
         Intersection &bestHit,
         Entity *entity
 ) {
+    if(!this->region.intersects(ray))
+        return false;
+    
+    // check intersections for triangle in this node
     bool hit = false;
-    //printf("n_idx: %d\n", this->n_triangle_indices);
     for (int i = 0; i < this->n_triangle_indices; i++) {
         int tri_idx = this->d_triangle_indices[i];
         Triangle *triangle = &(triangles[tri_idx]);
@@ -208,11 +211,9 @@ bool Octree::get_closest_intersection(
         hit = intersect_triangle(v0, v1, v2, triangle, entity, bestHit, ray) || hit;
     }
 
-    // TODO CHILDREN
-    // naive
+    // Check children
     for (int i = 0; i < 8; i++) {
         if(this->d_children[i] != nullptr) {
-            //printf("octree traversal\n");
             hit = d_children[i]->get_closest_intersection(vertices, triangles, ray, bestHit, entity) || hit;
         }
     }
@@ -231,18 +232,8 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     float y_mid = 0.5f * (y_min + y_max);
     float z_mid = 0.5f * (z_min + z_max);
     int _case = -1; // 0 no single child fits triangle
-    AABB c[8];
 
-    ////     Bottom: y_min = 0      Top: y_min = 1/2
-    ////      _____________         _____________
-    ////     |      |      |       |      |      |        ^ Z
-    ////     |  c2  |  c3  |       |  c6  |  c7  |        |
-    ////     |______|______|       |______|______|        |
-    ////     |      |      |       |      |      |        |
-    ////     |  c0  |  c1  |       |  c4  |  c5  |          ------> X
-    ////     |______|______|       |______|______|
-    ////
-    ////             <----- lower ----->        <----- upper -----> 
+    AABB c[8];
     c[0] = AABB(vec3(x_min, y_min, z_min), vec3(x_mid, y_mid, z_mid));
     c[1] = AABB(vec3(x_mid, y_min, z_min), vec3(x_max, y_mid, z_mid));
     c[2] = AABB(vec3(x_min, y_min, z_mid), vec3(x_mid, y_mid, z_max));
@@ -251,36 +242,19 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     c[5] = AABB(vec3(x_mid, y_mid, z_min), vec3(x_max, y_max, z_mid));
     c[6] = AABB(vec3(x_min, y_mid, z_mid), vec3(x_mid, y_max, z_max));
     c[7] = AABB(vec3(x_mid, y_mid, z_mid), vec3(x_max, y_max, z_max));
+
     for (int i = 0; i < 8; i++) {
         _case = (c[i].contains_triangle(v0, v1, v2)) ? i : _case;
     }
 
-    if (triangle_idx == 48) {
-        std::cout << _case << std::endl;
-        std::cout << "vector: " << v0 << v1 << v2 << std::endl;
-        std::cout << "parent region: " << this->region.min << " to " << this->region.max << std::endl;
-        std::cout << "c0: " << c[0].min << " to " << c[0].max << std::endl;
-        std::cout << "c1: " << c[1].min << " to " << c[1].max << std::endl;
-        std::cout << "c2: " << c[2].min << " to " << c[2].max << std::endl;
-        std::cout << "c3: " << c[3].min << " to " << c[3].max << std::endl;
-        std::cout << "c4: " << c[4].min << " to " << c[4].max << std::endl;
-        std::cout << "c5: " << c[5].min << " to " << c[5].max << std::endl;
-        std::cout << "c6: " << c[6].min << " to " << c[6].max << std::endl;
-        std::cout << "c7: " << c[7].min << " to " << c[7].max << std::endl;
-    }
-
     // Unless the math is wrong, there's exactly one possible case (no overridden values)
     if (_case == -1 || this->depth == MAX_OCTREE_DEPTH) {
-        //std::cout << "asd" << std::endl;
-        //std::cout << this->triangle_indices.size() << std::endl;
         this->triangle_indices.push_back(triangle_idx);
         this->n_triangle_indices++;
     } else {
         if (this->children[_case] == nullptr) {
-            //std::cout << "af" << std::endl;
             this->children[_case] = new Octree(c[_case], this->depth + 1);
         }
-
         this->children[_case]->insert_triangle(v0, v1, v2, triangle_idx);
     }
 }
