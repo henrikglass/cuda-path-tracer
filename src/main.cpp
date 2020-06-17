@@ -17,8 +17,8 @@ int main(void) {
 
     scene.add_entity(dragon);
 
-    ivec2 res = ivec2(1024, 768);
-    //ivec2 res = ivec2(4096, 2160);
+    //ivec2 res = ivec2(1024, 768);
+    ivec2 res = ivec2(4096, 2160);
     //ivec2 res = ivec2(8, 8);
     Camera camera(vec3(0,0,-2.5f), vec3(0,0,1), res, res.y);
     Image image = render(camera, scene);
