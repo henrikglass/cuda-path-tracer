@@ -96,13 +96,14 @@ struct Octree {
 class Entity {
 private:
     // for triangle mesh case:
-    //Octree *octree        = nullptr;
-    //Vertex *vertices      = nullptr;
-    //Vertex *d_vertices    = nullptr;
-    //Triangle *triangles   = nullptr;
-    //Triangle *d_triangles = nullptr;
-    //size_t n_triangles;
-    //size_t n_vertices;
+    Octree *octree        = nullptr;
+    Octree *d_octree      = nullptr;
+    Vertex *vertices      = nullptr;
+    Vertex *d_vertices    = nullptr;
+    Triangle *triangles   = nullptr;
+    Triangle *d_triangles = nullptr;
+    size_t n_triangles;
+    size_t n_vertices;
     AABB aabb;
 
     // for sphere case:
@@ -152,16 +153,6 @@ public:
     __host__ void print();
 
     Material material;
-
-    // TODO move to private
-    Octree *octree        = nullptr;
-    Octree *d_octree      = nullptr;
-    Vertex *vertices      = nullptr;
-    Vertex *d_vertices    = nullptr;
-    Triangle *triangles   = nullptr;
-    Triangle *d_triangles = nullptr;
-    size_t n_triangles;
-    size_t n_vertices;
 
 };
 
