@@ -6,24 +6,34 @@
 int main(void) {
     Material m(vec3(1,0,0), 0, 0, false);
     Entity dragon("examples/dragon/dragon.obj", m);
+    //Entity dragon("examples/teapot/utah.obj", m);
+    //Entity *dragon = new Entity("examples/teapot/utah.obj", m);
     dragon.rotate(vec3(0, 3.1415f/4.0f, 0));
     dragon.scale(2.0f);
     dragon.construct_octree();
+
+    //Entity teapot("examples/teapot/utah.obj", m);
+    //teapot.rotate(vec3(0, 3.1415f/4.0f, 0));
+    //teapot.scale(2.0f);
+    //teapot.construct_octree();
     Scene scene;
 
     // test transform
     std::cout << "dragon:" << std::endl;
     dragon.print();
 
-    scene.add_entity(dragon);
+    scene.add_entity(&dragon);
 
-    //ivec2 res = ivec2(1024, 768);
-    ivec2 res = ivec2(4096, 2160);
+    ivec2 res = ivec2(1024, 768);
+    //ivec2 res = ivec2(4096, 2160);
     //ivec2 res = ivec2(8, 8);
     Camera camera(vec3(0,0,-2.5f), vec3(0,0,1), res, res.y);
     Image image = render(camera, scene);
     std::cout << image.resolution << std::endl;
     save_ppm("output.ppm", image);
+    //scene->free_from_device();
+
+    // delete dragon;
 
     // test teapot
     /*std::cout << "teapot: " << std::endl;

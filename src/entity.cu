@@ -250,11 +250,50 @@ void Entity::copy_to_device() {
             //gpuErrchk(cudaPeekAtLastError());
         }
     }
+
+    this->on_device = true;
 }
 
 void Entity::free_from_device() {
     if (this->shape == SPHERE)
         return;
 
-    // TODO implement mesh case
+    // mesh case
+    if (this->d_octree != nullptr) {
+        this->octree->free_from_device();
+        gpuErrchk(cudaFree(this->d_octree));
+    }
+
+    if (this->d_vertices != nullptr) {
+        gpuErrchk(cudaFree(this->d_vertices));
+    }
+
+    if (this->d_triangles != nullptr) {
+        gpuErrchk(cudaFree(this->d_triangles));
+    }
+
+    this->on_device = false;
+}
+
+/*
+ * Destructor. Must be called after free_from_device().
+ */
+Entity::~Entity(){
+    if (this->on_device){
+        std::cout << "entity still on device!! :(" << std::endl;
+        exit(1);
+        return;
+    }
+
+    if (this->octree != nullptr) {
+        delete this->octree;
+    }
+
+    if (this->vertices != nullptr) {
+        delete[] this->vertices;
+    }
+
+    if (this->triangles != nullptr) {
+        delete[] this->triangles;
+    }
 }

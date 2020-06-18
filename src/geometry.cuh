@@ -72,6 +72,7 @@ struct Octree {
         this->depth = depth;
         triangle_indices = std::vector<int>();
     }
+    ~Octree();
     __host__ void pretty_print(int child_nr);
     __host__ void copy_to_device();
     __host__ void free_from_device();
@@ -91,10 +92,12 @@ struct Octree {
     int n_triangle_indices = 0;
     int depth;
     AABB region;
+    bool on_device = false;
 };
 
 class Entity {
 private:
+
     // for triangle mesh case:
     Octree *octree        = nullptr;
     Octree *d_octree      = nullptr;
@@ -126,6 +129,10 @@ public:
      * create sphere entity from coordinate and radius. Providing your own material.
      */
     Entity(const vec3 &center, float radius, const Material &material);
+    /*
+     * Destruct. 
+     */
+    ~Entity();
     
     // memory management
     void copy_to_device();
@@ -153,6 +160,8 @@ public:
     __host__ void print();
 
     Material material;
+
+    bool on_device = false;
 
 };
 

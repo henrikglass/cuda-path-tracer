@@ -31,10 +31,38 @@ void Octree::copy_to_device() {
         gpuErrchk(cudaMemcpy(this->d_children[i], this->children[i], size, cudaMemcpyHostToDevice));
         //gpuErrchk(cudaPeekAtLastError());
     }
+
+    this->on_device = true;
 }
 
 void Octree::free_from_device() {
-    // TODO
+    if (!this->on_device)
+        return;
+        
+    gpuErrchk(cudaFree(this->d_triangle_indices));
+
+    // free children
+    for (int i = 0; i < 8; i++) {
+        if (this->children[i] == nullptr)
+            continue;
+        this->children[i]->free_from_device();
+        gpuErrchk(cudaFree(this->d_children[i])); // this should still work
+    }
+
+    this->on_device = false;
+}
+
+Octree::~Octree() {
+    if (this->on_device) {
+        std::cout << "Octree still on device! :(" << std::endl;
+    }
+
+    // free children
+    for (int i = 0; i < 8; i++) {
+        if (this->children[i] == nullptr)
+            continue;
+        delete this->children[i];
+    }
 }
 
 void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {

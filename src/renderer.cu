@@ -11,8 +11,8 @@ Image render(const Camera &camera, Scene &scene) {
     // ------------------------------- debug ------------------------------
     // debug print scene representation
     std::cout << "camera position: " << camera.position << " camera direction: " << camera.direction << std::endl;
-    for (Entity e : scene.entities) {
-        switch (e.shape) {
+    for (Entity *e : scene.entities) {
+        switch (e->shape) {
             case SPHERE:
                 std::cout << "Sphere" << std::endl;
                 break;
@@ -62,8 +62,9 @@ Image render(const Camera &camera, Scene &scene) {
     // set stack size limit. (Default proved too little for deep octrees)
     size_t limit = 0;
     cudaDeviceGetLimit(&limit, cudaLimitStackSize);
-    cudaDeviceSetLimit( cudaLimitStackSize, 32 * limit );
-    std::cout << "device stack limit: " << (32 * limit / 1024) << "KiB" << std::endl;
+    size_t new_limit = 1024 << 5;
+    cudaDeviceSetLimit( cudaLimitStackSize, new_limit );
+    std::cout << "device stack limit: " << new_limit << "KiB" << std::endl;
 
     // render on device
     device_render<<<blocks, threads>>>(buf, buf_size, camera, scene.d_entities, scene.entities.size());
@@ -75,6 +76,11 @@ Image render(const Camera &camera, Scene &scene) {
     std::vector<vec3> result_pixels(n_pixels);
     cudaMemcpy(&(result_pixels[0]), buf, buf_size, cudaMemcpyDeviceToHost);
     gpuErrchk(cudaPeekAtLastError());
+
+    // free scene from device memory (should not be necessary, but why not)
+    std::cout << "freeing scene from device..." << std::endl;
+    scene.free_from_device();
+    std::cout << "done!" << std::endl;
 
     // return result
     //std::vector<vec3> result_pixels(n_pixels);
