@@ -116,12 +116,15 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
         return; // no hit
 
     // color pixel
-    buf[pixelIdx] = vec3(1.0f, 0.0f, 1.0f);
-    buf[pixelIdx] =  (hit.normal + vec3(1,1,1)) / 2;
+
+    // normal
+    //buf[pixelIdx] = vec3(1.0f, 0.0f, 1.0f);
+    //buf[pixelIdx] =  (hit.normal + vec3(1,1,1)) / 2;
     
-    //buf[pixelIdx].x = hit.entity->material.albedo.x;
-    //buf[pixelIdx].y = hit.entity->material.albedo.y;
-    //buf[pixelIdx].z = hit.entity->material.albedo.z;
+    // albedo
+    buf[pixelIdx].x = hit.entity->material.albedo.x;
+    buf[pixelIdx].y = hit.entity->material.albedo.y;
+    buf[pixelIdx].z = hit.entity->material.albedo.z;
 
 
 
@@ -130,4 +133,26 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
     //buf[pixelIdx].x = float(x) / camera.resolution.x;
     //buf[pixelIdx].y = float(y) / camera.resolution.y;
     //buf[pixelIdx].z = 0.2f;
+}
+
+__device__ float crand(float &seed) {
+    float garbage;
+    vec2 pixel(
+        blockIdx.x * blockDim.x + threadIdx.x, 
+        blockIdx.y * blockDim.y + threadIdx.y
+    );
+    float result = modff(sinf(seed / 100.0f * dot(pixel, vec2(12.9898f, 78.233f))) * 43758.5453f, &garbage);
+    seed += 1.0f;
+    return result;
+}
+
+__device__ vec3 sample_hemisphere(vec3 normal, float &seed) {
+    float cosTheta = crand(seed);
+    float sinTheta = sqrtf(max(0.0f, 1.0f - cosTheta * cosTheta));
+    float phi = 2 * PI * crand(seed);
+    //float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+    // Transform direction to world space
+    //return mul(tangentSpaceDir, GetTangentSpace(normal));
+
+    return vec3(0,0,0);
 }

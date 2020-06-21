@@ -42,8 +42,8 @@ struct Triangle {
 struct AABB {
     AABB() {}
     AABB(vec3 min, vec3 max) {
-        this->min = min;
-        this->max = max;
+        this->min = min - vec3(0.1f, 0.1f, 0.1f);
+        this->max = max + vec3(0.1f, 0.1f, 0.1f);
     }
     __host__ void recalculate(Vertex *vertices, int n_vertices);
     __host__ bool contains_triangle(vec3 v0, vec3 v1, vec3 v2);

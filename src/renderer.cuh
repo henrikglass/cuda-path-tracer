@@ -1,6 +1,8 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#define PI 3.14159265f
+
 #include <vector>
 
 #include "camera.h"
@@ -9,6 +11,10 @@
 #include "image.h"
 
 Image render(const Camera &camera, Scene &scene);
+
+
+__device__ float crand(float seed, vec2 pixel);
+__device__ vec3 sample_hemisphere(vec3 normal);
 
 __global__
 void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int n_entities);

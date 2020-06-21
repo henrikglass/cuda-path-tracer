@@ -3,6 +3,10 @@
 
 #include "io.h"
 
+float ffmin(float a, float b) {
+    return (a < b) ? a : b;
+}
+
 /*
  * Modified from: https://github.com/henrikglass/erodr/blob/master/src/io.c
  */
@@ -21,6 +25,9 @@ void save_ppm(
     // write data.
     for (int i = 0; i < img.resolution.x * img.resolution.y; i++) {
         char color[3];
+        //color[0] = ffmin(img.buf[i].x, 1.0f) * PRECISION_8;
+        //color[1] = ffmin(img.buf[i].y, 1.0f) * PRECISION_8;
+        //color[2] = ffmin(img.buf[i].z, 1.0f) * PRECISION_8;
         color[0] = img.buf[i].x * PRECISION_8;
         color[1] = img.buf[i].y * PRECISION_8;
         color[2] = img.buf[i].z * PRECISION_8;

@@ -21,7 +21,7 @@ void Scene::copy_to_device() {
     long size = this->entities.size()*sizeof(Entity);
     gpuErrchk(cudaMalloc(&this->d_entities, size));
     for (size_t i = 0; i < this->entities.size(); i++) {
-        cudaMemcpy((this->d_entities + i*sizeof(Entity)), this->entities[i], size, cudaMemcpyHostToDevice);
+        cudaMemcpy((this->d_entities + i), this->entities[i], sizeof(Entity), cudaMemcpyHostToDevice);
     }
     gpuErrchk(cudaPeekAtLastError());
 

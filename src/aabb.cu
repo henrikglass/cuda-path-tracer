@@ -13,8 +13,8 @@ void AABB::recalculate(Vertex *vertices, int n_vertices) {
         max.z = (position.z > max.z) ? position.z : max.z;
     }
     
-    this->min = min;
-    this->max = max;
+    this->min = min - vec3(0.1f, 0.1f, 0.1f); // padding
+    this->max = max + vec3(0.1f, 0.1f, 0.1f);
 }
 
 __host__ 
