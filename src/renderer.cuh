@@ -4,6 +4,7 @@
 #define PI 3.14159265f
 
 #include <vector>
+#include <curand_kernel.h>
 
 #include "camera.h"
 #include "scene.cuh"
@@ -12,11 +13,21 @@
 
 Image render(const Camera &camera, Scene &scene);
 
-__device__ float crand(float &seed);
-__device__ vec3 sample_hemisphere(vec3 normal, float &seed);
+__device__ vec3 sample_hemisphere(vec3 normal, curandState *local_rand_state);
 __device__ mat3 get_tangent_space(vec3 normal);
+__device__ vec3 color(Ray &ray, Entity *entities, int n_entities, curandState *local_rand_state);
 
 __global__
-void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int n_entities);
+void render_init(Camera camera, curandState *rand_state);
+
+__global__
+void device_render(
+        vec3 *buf, 
+        int buf_size, 
+        Camera camera, 
+        Entity *entities, 
+        int n_entities, 
+        curandState *rand_state
+);
 
 #endif

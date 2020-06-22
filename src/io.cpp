@@ -25,12 +25,12 @@ void save_ppm(
     // write data.
     for (int i = 0; i < img.resolution.x * img.resolution.y; i++) {
         char color[3];
-        color[0] = ffmin(0.0004f * img.buf[i].x, 1.99f) * PRECISION_8;
-        color[1] = ffmin(0.0004f * img.buf[i].y, 1.99f) * PRECISION_8;
-        color[2] = ffmin(0.0004f * img.buf[i].z, 1.99f) * PRECISION_8;
-        //color[0] = 0.0004f * img.buf[i].x * PRECISION_8;
-        //color[1] = 0.0004f * img.buf[i].y * PRECISION_8;
-        //color[2] = 0.0004f * img.buf[i].z * PRECISION_8;
+        //color[0] = ffmin(/*0.0004f * */img.buf[i].x, 0.99f) * PRECISION_8;
+        //color[1] = ffmin(/*0.0004f * */img.buf[i].y, 0.99f) * PRECISION_8;
+        //color[2] = ffmin(/*0.0004f * */img.buf[i].z, 0.99f) * PRECISION_8;
+        color[0] = img.buf[i].x * PRECISION_8;
+        color[1] = img.buf[i].y * PRECISION_8;
+        color[2] = img.buf[i].z * PRECISION_8;
         fwrite(color, sizeof(char), 3, fp);
     }
 

@@ -83,6 +83,10 @@ __host__ __device__ inline vec3 cross(const vec3& a, const vec3& b) {
             (a.x * b.y) - (a.y * b.x)
     );
 }
+// Hadamard product (element wise)
+__host__ __device__ inline vec3 operator*(const vec3 &a, const vec3 &b) {
+    return vec3(a.x * b.x, a.y * b.y, a.z * b.z);
+}
 
 // scalar operations
 __device__ __host__ inline vec2 operator*(float s, const vec2& v) {
