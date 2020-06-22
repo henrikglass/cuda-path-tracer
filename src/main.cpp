@@ -9,10 +9,10 @@ int main(void) {
     Material m_red(vec3(1,0,0), 0, 0, false);
     Material m_green(vec3(0,1,0), 0, 0, false);
     Material m_ball(vec3(1,0,1), 0, 0, false);
-    Material m_light(vec3(1,1,1), 150, 0, false);
+    Material m_light(vec3(1,1,1), 15, 0, false);
 
     // entities
-    Entity ball(vec3(27.5f, 10.01f, 27.5f), 10, m_white);
+    Entity ball(vec3(13.5f, 10.01f, 37.5f), 10, m_white);
     Entity ball2(vec3(45.5f, 27.5f, 27.5f), 5, m_white);
     Entity wall_l("examples/cornellbox/side_wall.obj", m_red);
     Entity wall_r("examples/cornellbox/side_wall.obj", m_green);
