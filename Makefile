@@ -3,7 +3,7 @@ CUDA_ROOT_DIR = /usr/local/cuda
 
 # CC compiler options:
 CC			= g++ #clang
-CC_FLAGS	= -std=c++11 -O2 -Wall -pedantic # -p -pg
+CC_FLAGS	= -std=c++11 -O2 -Wall -pedantic #-p -pg
 CC_LIBS		=
 
 # NVCC compiler options:

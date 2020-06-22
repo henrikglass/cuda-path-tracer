@@ -12,12 +12,14 @@
 enum Shape {SPHERE, TRIANGLE_MESH};
 
 struct Ray {
-    __device__ __host__ Ray(vec3 origin, vec3 direction) {
+    __device__ __host__ Ray(vec3 origin, vec3 direction, vec3 energy) {
         this->origin    = origin;
         this->direction = direction;
+        this->energy    = energy;
     }
     vec3 origin;
     vec3 direction;
+    vec3 energy;
 };
 
 struct Vertex {

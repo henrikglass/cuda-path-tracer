@@ -12,9 +12,9 @@
 
 Image render(const Camera &camera, Scene &scene);
 
-
-__device__ float crand(float seed, vec2 pixel);
-__device__ vec3 sample_hemisphere(vec3 normal);
+__device__ float crand(float &seed);
+__device__ vec3 sample_hemisphere(vec3 normal, float &seed);
+__device__ mat3 get_tangent_space(vec3 normal);
 
 __global__
 void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int n_entities);

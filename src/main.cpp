@@ -9,11 +9,11 @@ int main(void) {
     Material m_red(vec3(1,0,0), 0, 0, false);
     Material m_green(vec3(0,1,0), 0, 0, false);
     Material m_ball(vec3(1,0,1), 0, 0, false);
-    Material m_light(vec3(0,1,1), 20, 0, false);
+    Material m_light(vec3(1,1,1), 100, 0, false);
 
     // entities
-    Entity ball(vec3(27.5f, 27.5f, 0.0f), 10, m_ball);
-    Entity ball2(vec3(45.5f, 27.5f, 0.0f), 5, m_ball);
+    Entity ball(vec3(27.5f, 27.5f, 27.5f), 10, m_white);
+    Entity ball2(vec3(45.5f, 27.5f, 27.5f), 5, m_white);
     Entity wall_l("examples/cornellbox/side_wall.obj", m_red);
     Entity wall_r("examples/cornellbox/side_wall.obj", m_green);
     Entity wall_back("examples/cornellbox/back_wall.obj", m_white);
@@ -48,7 +48,7 @@ int main(void) {
 
     // camera
     ivec2 res = ivec2(1024, 768);
-    Camera camera(vec3(27.5f, 27.5f,-100), vec3(0,0,1), res, res.y*1.5);
+    Camera camera(vec3(27.5f, 27.5f,-100), vec3(0,0,1), res, res.y*2);
 
     // render
     Image image = render(camera, scene);

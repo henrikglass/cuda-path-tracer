@@ -9,6 +9,7 @@ Scene::~Scene() {
     this->free_from_device();
 }
 
+// TODO pass by reference.
 void Scene::add_entity(Entity *entity) {
     this->entities.push_back(entity);
 }

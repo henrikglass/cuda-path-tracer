@@ -53,9 +53,11 @@ Image render(const Camera &camera, Scene &scene) {
 
     // Decide on tile size, # of threads and # of blocks
     int tile_size = 8; // 8x8 pixels
+    int samples_per_pixel = 1000;
     dim3 blocks(
             camera.resolution.x / tile_size + 1, 
-            camera.resolution.y / tile_size + 1
+            camera.resolution.y / tile_size + 1,
+            samples_per_pixel
     );
     dim3 threads(tile_size, tile_size);
 
@@ -87,6 +89,7 @@ Image render(const Camera &camera, Scene &scene) {
     return Image(result_pixels, camera.resolution);
 }
 
+
 __global__
 void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int n_entities) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -108,23 +111,46 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
         camera.focal_length
     );
     ray_dir.normalize();
-    Ray ray(ray_orig, ray_dir);
+    vec3 ray_energy = vec3(1.0f, 1.0f, 1.0f);
+    Ray ray(ray_orig, ray_dir, ray_energy);
 
     // cast ray
-    Intersection hit;
-    if(!get_closest_intersection_in_scene(ray, entities, n_entities, hit))
-        return; // no hit
+    vec3 result(0, 0, 0);
+    float seed = pixelIdx*blockIdx.z / 913.315f;
+    for (int i = 0; i < 3; i++) {
+        Intersection hit;
+        if(!get_closest_intersection_in_scene(ray, entities, n_entities, hit))
+            break; // no hit
+        
+        if (hit.entity->material.emission > 0.001f) {
+            result.x = hit.entity->material.emission * hit.entity->material.albedo.x * ray.energy.x;
+            result.y = hit.entity->material.emission * hit.entity->material.albedo.y * ray.energy.y;
+            result.z = hit.entity->material.emission * hit.entity->material.albedo.z * ray.energy.z;
+            break;
+        }
+
+        ray.origin = hit.position + hit.normal * 0.001f;
+        ray.direction = sample_hemisphere(hit.normal, seed);
+        ray.energy.x = ray.energy.x * 2 * hit.entity->material.albedo.x * saturate(dot(hit.normal, ray.direction));
+        ray.energy.y = ray.energy.y * 2 * hit.entity->material.albedo.y * saturate(dot(hit.normal, ray.direction));
+        ray.energy.z = ray.energy.z * 2 * hit.entity->material.albedo.z * saturate(dot(hit.normal, ray.direction));
+    }
 
     // color pixel
+    buf[pixelIdx].x += result.x;
+    buf[pixelIdx].y += result.y;
+    buf[pixelIdx].z += result.z;
+
+    
 
     // normal
     //buf[pixelIdx] = vec3(1.0f, 0.0f, 1.0f);
     //buf[pixelIdx] =  (hit.normal + vec3(1,1,1)) / 2;
     
     // albedo
-    buf[pixelIdx].x = hit.entity->material.albedo.x;
-    buf[pixelIdx].y = hit.entity->material.albedo.y;
-    buf[pixelIdx].z = hit.entity->material.albedo.z;
+    //buf[pixelIdx].x = hit.entity->material.albedo.x;
+    //buf[pixelIdx].y = hit.entity->material.albedo.y;
+    //buf[pixelIdx].z = hit.entity->material.albedo.z;
 
 
 
@@ -147,12 +173,21 @@ __device__ float crand(float &seed) {
 }
 
 __device__ vec3 sample_hemisphere(vec3 normal, float &seed) {
-    float cosTheta = crand(seed);
-    float sinTheta = sqrtf(max(0.0f, 1.0f - cosTheta * cosTheta));
+    float cos_theta = crand(seed);
+    float sin_theta = sqrtf(max(0.0f, 1.0f - cos_theta * cos_theta));
     float phi = 2 * PI * crand(seed);
-    //float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+    vec3 tangent_space_dir = vec3(cosf(phi) * sin_theta, sinf(phi) * sin_theta, cos_theta);
     // Transform direction to world space
-    //return mul(tangentSpaceDir, GetTangentSpace(normal));
+    return tangent_space_dir * get_tangent_space(normal);
+}
 
-    return vec3(0,0,0);
+__device__ mat3 get_tangent_space(vec3 normal) {
+    // Choose a helper vector for the cross product
+    vec3 helper = vec3(1, 0, 0);
+    if (fabsf(normal.x) > 0.99f)
+        helper = vec3(0, 0, 1);
+    // Generate vectors
+    vec3 tangent = cross(normal, helper).normalized();
+    vec3 binormal = cross(normal, tangent).normalized();
+    return mat3(tangent, binormal, normal);
 }
