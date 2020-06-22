@@ -83,6 +83,15 @@ __host__ __device__ inline vec3 cross(const vec3& a, const vec3& b) {
             (a.x * b.y) - (a.y * b.x)
     );
 }
+
+// distance
+__device__ inline float distance(const vec3 &a, const vec3 &b) {
+    float dx = b.x - a.x;
+    float dy = b.y - a.y;
+    float dz = b.z - a.z;
+    return sqrtf(dx*dx + dy*dy + dz*dz);
+}
+
 // Hadamard product (element wise)
 __host__ __device__ inline vec3 operator*(const vec3 &a, const vec3 &b) {
     return vec3(a.x * b.x, a.y * b.y, a.z * b.z);

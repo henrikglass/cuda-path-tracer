@@ -9,7 +9,7 @@ int main(void) {
     Material m_red(vec3(1,0,0), 0, 0, false);
     Material m_green(vec3(0,1,0), 0, 0, false);
     Material m_ball(vec3(1,0,1), 0, 0, false);
-    Material m_light(vec3(1,1,1), 1, 0, false);
+    Material m_light(vec3(1,1,1), 150, 0, false);
 
     // entities
     Entity ball(vec3(27.5f, 10.01f, 27.5f), 10, m_white);
@@ -33,7 +33,7 @@ int main(void) {
     wall_back.scale(1.1f);
     floor.scale(1.1f);
     ceiling.scale(1.1f);
-    light.scale(0.2f);
+    light.scale(0.35f);
 
     // add to scene scene
     Scene scene;

@@ -112,7 +112,7 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
     Ray ray(ray_orig, ray_dir, ray_energy);
 
     vec3 result(0, 0, 0);
-    int ns = 1000;
+    int ns = 30000;
     for (int i = 0; i < ns; i++) {
         ray.origin      = ray_orig;
         ray.direction   = ray_dir;
