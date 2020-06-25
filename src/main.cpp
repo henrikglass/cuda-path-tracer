@@ -8,7 +8,7 @@ int main(void) {
     Material m_white(vec3(1,1,1), vec3(0.0f), 0, 0, false);
     Material m_red(vec3(1,0,0), vec3(0.0f), 0, 0, false);
     Material m_green(vec3(0,1,0), vec3(0.0f), 0, 0, false);
-    Material m_ball(vec3(0.0f,0.0f,0.0f), vec3(1.0f), 0, 1.0f, false);
+    Material m_ball(vec3(0.3f,0.3f,0.3f), vec3(0.7f), 0, 0.6f, false);
     Material m_light(vec3(1,1,1), vec3(0.0f), 10, 0, false);
     Material m_light0(vec3(1,0,0), vec3(0.0f), 10, 0, false);
     Material m_light1(vec3(0,1,0), vec3(0.0f), 10, 0, false);

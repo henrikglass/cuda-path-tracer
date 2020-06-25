@@ -171,11 +171,11 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
 }
 
 __device__ vec3 color(const Ray &ray, Entity *entities, int n_entities, curandState *local_rand_state) {
-    Intersection hit;
     vec3 attenuation(1.0f, 1.0f, 1.0f);
     vec3 result(0.0f, 0.0f, 0.0f);
     Ray cray = ray;
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 6; i++) {
+        Intersection hit;
         if (get_closest_intersection_in_scene(cray, entities, n_entities, hit)) {
             Material m = hit.entity->material;
             //printf("\nhit\n");
@@ -199,12 +199,12 @@ __device__ vec3 color(const Ray &ray, Entity *entities, int n_entities, curandSt
             if (roulette < spec_chance) {
                 // specular reflection
                 //printf("specular reflection: %g\n", diff_chance);
-                //float alpha   = powf(1000.0f, m.smoothness * m.smoothness);
+                float alpha   = powf(1000.0f, m.smoothness * m.smoothness);
                 cray.origin    = hit.position + hit.normal * 0.001f;
-                //cray.direction = sample_hemisphere(reflect(cray.direction, hit.normal), alpha, local_rand_state);
-                cray.direction = reflect(cray.direction, hit.normal).normalized();
-                //float f       = (alpha + 2) / (alpha + 1);
-                //attenuation   = attenuation * (1.0f / spec_chance) * specular * f * dot(hit.normal, cray.direction);
+                cray.direction = sample_hemisphere(reflect(cray.direction, hit.normal), alpha, local_rand_state);
+                //cray.direction = reflect(cray.direction, hit.normal).normalized();
+                float f       = (alpha + 2) / (alpha + 1);
+                attenuation   = attenuation * (1.0f / spec_chance) * specular * f * dot(hit.normal, cray.direction);
             } else {
                 // diffuse reflection
                 //printf("diffuse reflection: %g\n", diff_chance);
@@ -228,7 +228,7 @@ __device__ vec3 color(const Ray &ray, Entity *entities, int n_entities, curandSt
         } else {
             // fake ambient
             //printf("miss!\n");
-            result = result + attenuation * 0.03f * vec3(0.5f, 0.7f, 1.0f);
+            //result = result + attenuation * 0.03f * vec3(0.5f, 0.7f, 1.0f);
             break;
         }
     }
@@ -251,31 +251,31 @@ __device__ vec3 reflect(const vec3 &dir, const vec3 &normal) {
 }
 
 __device__ vec3 sample_hemisphere(const vec3 &dir, float alpha, curandState *local_rand_state) {
-    float x, y, z, d;
-    do {
-        x = 2 * curand_uniform(local_rand_state) - 1;
-        y = 2 * curand_uniform(local_rand_state) - 1;
-        z = 2 * curand_uniform(local_rand_state) - 1;
-        d = sqrtf(x*x + y*y + z*z);
-    } while(d > 1);
-
-    x= x / d;
-    y= y / d;
-    z= z / d;
-    vec3 v(x, y, z);
-
-    if (dot(dir, v) <= 0.0f)
-        v = -v;
-
-    return v.normalized();
+    //float x, y, z, d;
+    //do {
+    //    x = 2 * curand_uniform(local_rand_state) - 1;
+    //    y = 2 * curand_uniform(local_rand_state) - 1;
+    //    z = 2 * curand_uniform(local_rand_state) - 1;
+    //    d = sqrtf(x*x + y*y + z*z);
+    //} while(d > 1);
+//
+    //x= x / d;
+    //y= y / d;
+    //z= z / d;
+    //vec3 v(x, y, z);
+//
+    //if (dot(dir, v) <= 0.0f)
+    //    v = -v;
+//
+    //return v.normalized();
     
-    //float cos_theta = powf(curand_uniform(local_rand_state), 1.0f / (alpha + 1.0f));
-    ////float sin_theta = sqrtf(max(0.0f, 1.0f - cos_theta * cos_theta));
-    //float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
-    //float phi = 2 * PI * curand_uniform(local_rand_state);
-    //vec3 tangent_space_dir = vec3(cosf(phi) * sin_theta, sinf(phi) * sin_theta, cos_theta);
-    //// Transform direction to world space
-    //return tangent_space_dir * get_tangent_space(dir);
+    float cos_theta = powf(curand_uniform(local_rand_state), 1.0f / (alpha + 1.0f));
+    //float sin_theta = sqrtf(max(0.0f, 1.0f - cos_theta * cos_theta));
+    float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
+    float phi = 2 * PI * curand_uniform(local_rand_state);
+    vec3 tangent_space_dir = vec3(cosf(phi) * sin_theta, sinf(phi) * sin_theta, cos_theta);
+    // Transform direction to world space
+    return tangent_space_dir * get_tangent_space(dir);
 }
 
 __device__ mat3 get_tangent_space(const vec3 &normal) {
