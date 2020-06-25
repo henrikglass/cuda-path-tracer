@@ -43,6 +43,11 @@ struct vec2 {
 struct vec3 {
     float x, y, z;
     __device__ __host__ vec3() {}
+    __device__ __host__ vec3(float v) {
+        this->x = v;
+        this->y = v;
+        this->z = v;
+    }
     __device__ __host__ vec3(float x, float y, float z) {
         this->x = x;
         this->y = y;
@@ -90,6 +95,10 @@ __device__ inline float distance(const vec3 &a, const vec3 &b) {
     float dy = b.y - a.y;
     float dz = b.z - a.z;
     return sqrtf(dx*dx + dy*dy + dz*dz);
+}
+
+__device__ inline vec3 min(const vec3 &a, const vec3 &b) {
+    return vec3(fminf(a.x, b.x), fminf(a.y, b.y), fminf(a.z, b.z));
 }
 
 // Hadamard product (element wise)
