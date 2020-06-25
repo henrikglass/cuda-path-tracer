@@ -8,12 +8,12 @@ CC_LIBS		=
 
 # NVCC compiler options:
 NVCC 		= nvcc
-NVCC_FLAGS 	= -Xcompiler -O2 -dc -gencode arch=compute_75,code=sm_75#-arch compute_75 #-G -lineinfo -Xcompiler -Wall -Xcompiler -Wextra -Xcompiler -p -Xcompiler -pg
+NVCC_FLAGS 	= -Xcompiler -O2 -dc -gencode arch=compute_75,code=sm_75 -lineinfo#-arch compute_75 #-G -lineinfo -Xcompiler -Wall -Xcompiler -Wextra -Xcompiler -p -Xcompiler -pg
 NVCC_LIBS 	= -Iexternal
 
 # Linker options
 LINKER 		 = nvcc #g++ #clang
-LINKER_FLAGS = -gencode arch=compute_75,code=sm_75 #-arch compute_75 #-G -lineinfo #-std=c++11 -O2 #-Wall -pedantic
+LINKER_FLAGS = -gencode arch=compute_75,code=sm_75 -lineinfo #-arch compute_75 #-G -lineinfo #-std=c++11 -O2 #-Wall -pedantic
 LINKER_LIBS	 =
 
 # cuda stuff
