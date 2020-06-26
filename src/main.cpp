@@ -60,13 +60,18 @@ int main(void) {
     scene.add_entity(&ball);
     scene.add_entity(&ball2);
     scene.add_entity(&light);
+    scene.set_hdri("examples/hdris/photostudio.hdr");
+    //std::cout << scene.sample_hdri(vec3(0, 0, 1.0f).normalized()) << std::endl;
+    //std::cout << scene.sample_hdri(vec3(0.1f, 1.0f, 0.1f).normalized()) << std::endl;
+    //std::cout << scene.sample_hdri(vec3(-0.1f, -0.1f, 1.0f).normalized()) << std::endl;
+    //std::cout << scene.sample_hdri(vec3(1.0f, 0, 0).normalized()) << std::endl;
     //scene.add_entity(&light0);
     //scene.add_entity(&light1);
     //scene.add_entity(&light2);
 
     // camera
     ivec2 res = ivec2(1024, 768);
-    Camera camera(vec3(27.5f, 27.5f, -100), vec3(0, 0, 1), res, 2);
+    Camera camera(vec3(27.5f, 27.5f, -150), vec3(0, 0, 1), res, 1);
 
     // render
     Image image = render(camera, scene);

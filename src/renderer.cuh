@@ -19,7 +19,7 @@ void normalize_and_gamma_correct(std::vector<vec3> &buf, int n_samples_per_pixel
 __device__ vec3 reflect(const vec3 &dir, const vec3 &normal);
 __device__ vec3 sample_hemisphere(const vec3 &dir, float alpha, curandState *local_rand_state);
 __device__ mat3 get_tangent_space(const vec3 &normal);
-__device__ vec3 color(const Ray &ray, Entity *entities, int n_entities, curandState *local_rand_state);
+__device__ vec3 color(const Ray &ray, Entity *entities, int n_entities, Scene *scene, curandState *local_rand_state);
 
 // kernels
 __global__
@@ -30,8 +30,9 @@ void device_render(
         vec3 *buf, 
         int buf_size, 
         Camera camera, 
-        Entity *entities, 
+        Entity *entities,
         int n_entities, 
+        Scene *scene,
         curandState *rand_state
 );
 

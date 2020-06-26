@@ -30,6 +30,10 @@ Image render(const Camera &camera, Scene &scene) {
     std::cout << "copying scene to device..." << std::endl;
     scene.copy_to_device();
     std::cout << "done!" << std::endl;
+    Scene *d_scene;
+    gpuErrchk(cudaMalloc(&d_scene, sizeof(Scene)));
+    cudaMemcpy(d_scene, &scene, sizeof(Scene), cudaMemcpyHostToDevice);
+    gpuErrchk(cudaPeekAtLastError());
 
     // device info debug print
     int devID = 0;
@@ -70,7 +74,7 @@ Image render(const Camera &camera, Scene &scene) {
 
     std::cout << "start render" << std::endl;
     // render on device
-    device_render<<<blocks, threads>>>(buf, buf_size, camera, scene.d_entities, scene.entities.size(), d_rand_state);
+    device_render<<<blocks, threads>>>(buf, buf_size, camera, scene.d_entities, scene.entities.size(), d_scene, d_rand_state);
     gpuErrchk(cudaPeekAtLastError());
     cudaDeviceSynchronize();
     gpuErrchk(cudaPeekAtLastError());
@@ -85,6 +89,7 @@ Image render(const Camera &camera, Scene &scene) {
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
+    gpuErrchk(cudaFree(d_scene));
     scene.free_from_device();
     std::cout << "done!" << std::endl;
 
@@ -104,15 +109,15 @@ void render_init(Camera camera, curandState *rand_state) {
 }
 
 __global__
-void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int n_entities, curandState *rand_state) {
+void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int n_entities, Scene *scene, curandState *rand_state) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int pixel_idx = y * camera.resolution.x +  x;
     if ((x >= camera.resolution.x) || (y >= camera.resolution.y))
         return;
     //if (x != 290 || y != 590)
-    //    if (x != 160 || y != 400)
-            //return;
+        //if (x != 160 || y != 400)
+         //   return;
 
 
     curandState &local_rand_state = rand_state[pixel_idx];
@@ -142,7 +147,7 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
         ray.origin      = ray_orig;
         ray.direction   = ray_dir;
         //ray.energy      = ray_energy;
-        result = result + color(ray, entities, n_entities, &local_rand_state);
+        result = result + color(ray, entities, n_entities, scene, &local_rand_state);
     }
     //result = result / float(ns);
     //float gamma = 2.2;
@@ -170,7 +175,7 @@ void device_render(vec3 *buf, int buf_size, Camera camera, Entity *entities, int
 
 }
 
-__device__ vec3 color(const Ray &ray, Entity *entities, int n_entities, curandState *local_rand_state) {
+__device__ vec3 color(const Ray &ray, Entity *entities, int n_entities, Scene *scene, curandState *local_rand_state) {
     vec3 attenuation(1.0f, 1.0f, 1.0f);
     vec3 result(0.0f, 0.0f, 0.0f);
     Ray cray = ray;
@@ -229,6 +234,7 @@ __device__ vec3 color(const Ray &ray, Entity *entities, int n_entities, curandSt
             // fake ambient
             //printf("miss!\n");
             //result = result + attenuation * 0.03f * vec3(0.5f, 0.7f, 1.0f);
+            result = result + attenuation * scene->sample_hdri(cray.direction);
             break;
         }
     }

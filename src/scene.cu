@@ -9,12 +9,25 @@ Scene::~Scene() {
     this->free_from_device();
 }
 
-// TODO pass by reference.
+void Scene::set_hdri(const std::string &path) {
+    HDRLoader loader;
+    if(!loader.load(path.c_str(), this->hdri)) {
+        std::cerr << "Error parsing .hdr file, or file doesn't exist." << std::endl;
+        exit(1);
+    }
+    has_hdri = true;
+}
+
 void Scene::add_entity(Entity *entity) {
     this->entities.push_back(entity);
 }
 
 void Scene::copy_to_device() {
+    if (has_hdri) {
+        this->hdri.copy_to_device();
+        gpuErrchk(cudaPeekAtLastError());
+    }
+
     for (size_t i = 0; i < this->entities.size(); i++) {
         entities[i]->copy_to_device();
     }
@@ -36,6 +49,11 @@ void Scene::copy_to_device() {
 void Scene::free_from_device() {
     if (!this->on_device)
         return;
+    
+    if (has_hdri) {
+        this->hdri.free_from_device();
+        gpuErrchk(cudaPeekAtLastError());
+    }
 
     for (size_t i = 0; i < this->entities.size(); i++) {
         this->entities[i]->free_from_device();
