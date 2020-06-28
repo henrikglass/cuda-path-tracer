@@ -18,6 +18,10 @@ void Scene::set_hdri(const std::string &path) {
     has_hdri = true;
 }
 
+void Scene::use_hdri_smoothing(bool b) {
+    this->use_smooth_hdri = b;
+}
+
 void Scene::add_entity(Entity *entity) {
     this->entities.push_back(entity);
 }
@@ -44,6 +48,7 @@ void Scene::copy_to_device() {
     //cudaMemcpy(this->d_entities, &(this->entities[0]), size, cudaMemcpyHostToDevice);
     //gpuErrchk(cudaPeekAtLastError());
     this->on_device = true;
+    this->n_entities = this->entities.size();
 }
 
 void Scene::free_from_device() {

@@ -8,7 +8,7 @@ int main(void) {
     Material m_white(vec3(1,1,1), vec3(0.0f), 0, 0, false);
     Material m_red(vec3(1,0,0), vec3(0.0f), 0, 0, false);
     Material m_green(vec3(0,1,0), vec3(0.0f), 0, 0, false);
-    Material m_ball(vec3(0.3f,0.3f,0.3f), vec3(0.7f), 0, 0.6f, false);
+    Material m_ball(vec3(0.3f,0.3f,0.3f), vec3(0.7f, 0.7f, 0.7f), 0, 0.8f, false);
     Material m_light(vec3(1,1,1), vec3(0.0f), 10, 0, false);
     Material m_light0(vec3(1,0,0), vec3(0.0f), 10, 0, false);
     Material m_light1(vec3(0,1,0), vec3(0.0f), 10, 0, false);
@@ -52,15 +52,18 @@ int main(void) {
 
     // add to scene scene
     Scene scene;
-    scene.add_entity(&wall_l);
-    scene.add_entity(&wall_r);
-    scene.add_entity(&wall_back);
+    //scene.add_entity(&wall_l);
+    //scene.add_entity(&wall_r);
+    //scene.add_entity(&wall_back);
     scene.add_entity(&floor);
-    scene.add_entity(&ceiling);
+    //scene.add_entity(&ceiling);
     scene.add_entity(&ball);
     scene.add_entity(&ball2);
-    scene.add_entity(&light);
-    scene.set_hdri("examples/hdris/photostudio.hdr");
+    //scene.add_entity(&light);
+    //scene.set_hdri("examples/hdris/photostudio.hdr");
+    scene.set_hdri("examples/hdris/piazza_bologni_4k.hdr");
+    //scene.set_hdri("examples/hdris/old_bus_depot_1k.hdr");
+    scene.use_hdri_smoothing(true);
     //std::cout << scene.sample_hdri(vec3(0, 0, 1.0f).normalized()) << std::endl;
     //std::cout << scene.sample_hdri(vec3(0.1f, 1.0f, 0.1f).normalized()) << std::endl;
     //std::cout << scene.sample_hdri(vec3(-0.1f, -0.1f, 1.0f).normalized()) << std::endl;
@@ -71,7 +74,7 @@ int main(void) {
 
     // camera
     ivec2 res = ivec2(1024, 768);
-    Camera camera(vec3(27.5f, 27.5f, -150), vec3(0, 0, 1), res, 1);
+    Camera camera(vec3(27.5f, 27.5f, -150), vec3(0, 0, 1), res, 2);
 
     // render
     Image image = render(camera, scene);

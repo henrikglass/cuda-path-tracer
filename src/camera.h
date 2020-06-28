@@ -4,6 +4,7 @@
 #include "vector.cuh"
 
 struct Camera {
+    Camera() = default;
     Camera(
             vec3 position, 
             vec3 direction, 

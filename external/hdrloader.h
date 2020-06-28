@@ -157,15 +157,15 @@ public:
         if (!file)
             return false;
 
-        fread(str, 10, 1, file);
-        if (memcmp(str, "#?RADIANCE", 10)) {
+        size_t result = fread(str, 10, 1, file);
+        if (result < 1 || memcmp(str, "#?RADIANCE", 10)) {
             fclose(file);
             return false;
         }
 
         fseek(file, 1, SEEK_CUR);
 
-        char cmd[200];
+        char buf[200];
         i = 0;
         char c = 0, oldc;
         while(true) {
@@ -173,20 +173,19 @@ public:
             c = fgetc(file);
             if (c == 0xa && oldc == 0xa)
                 break;
-            cmd[i++] = c;
+            buf[i++] = c;
         }
 
-        char reso[200];
         i = 0;
         while(true) {
             c = fgetc(file);
-            reso[i++] = c;
+            buf[i++] = c;
             if (c == 0xa)
                 break;
         }
 
         int w, h;
-        if (!sscanf(reso, "-Y %d +X %d", &h, &w)) {
+        if (!sscanf(buf, "-Y %d +X %d", &h, &w)) {
             fclose(file);
             return false;
         }
