@@ -76,14 +76,14 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     //int _case = -1; // 0 no single child fits triangle
 
     AABB c[8];
-    c[0] = AABB(vec3(x_min, y_min, z_min), vec3(x_mid, y_mid, z_mid));
-    c[1] = AABB(vec3(x_mid, y_min, z_min), vec3(x_max, y_mid, z_mid));
-    c[2] = AABB(vec3(x_min, y_min, z_mid), vec3(x_mid, y_mid, z_max));
-    c[3] = AABB(vec3(x_mid, y_min, z_mid), vec3(x_max, y_mid, z_max));
-    c[4] = AABB(vec3(x_min, y_mid, z_min), vec3(x_mid, y_max, z_mid));
-    c[5] = AABB(vec3(x_mid, y_mid, z_min), vec3(x_max, y_max, z_mid));
-    c[6] = AABB(vec3(x_min, y_mid, z_mid), vec3(x_mid, y_max, z_max));
-    c[7] = AABB(vec3(x_mid, y_mid, z_mid), vec3(x_max, y_max, z_max));
+    c[0] = AABB(vec3(x_min, y_min, z_min), vec3(x_mid, y_mid, z_mid)); // old --> 0
+    c[4] = AABB(vec3(x_mid, y_min, z_min), vec3(x_max, y_mid, z_mid)); // old --> 1
+    c[1] = AABB(vec3(x_min, y_min, z_mid), vec3(x_mid, y_mid, z_max)); // old --> 2
+    c[5] = AABB(vec3(x_mid, y_min, z_mid), vec3(x_max, y_mid, z_max)); // old --> 3
+    c[2] = AABB(vec3(x_min, y_mid, z_min), vec3(x_mid, y_max, z_mid)); // old --> 4
+    c[6] = AABB(vec3(x_mid, y_mid, z_min), vec3(x_max, y_max, z_mid)); // old --> 5
+    c[3] = AABB(vec3(x_min, y_mid, z_mid), vec3(x_mid, y_max, z_max)); // old --> 6
+    c[7] = AABB(vec3(x_mid, y_mid, z_mid), vec3(x_max, y_max, z_max)); // old --> 7
 
     // old way
     /*for (int i = 0; i < 8; i++) {

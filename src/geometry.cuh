@@ -16,14 +16,12 @@ struct Ray {
     __host__ __device__ Ray(vec3 origin, vec3 direction) {
         this->origin    = origin;
         this->direction = direction;
-#ifdef __CUDA_ARCH__
         recalc_fracs();
-#endif
     }
-    __device__ void recalc_fracs() {
-        fracs.x = __fdividef(1.0f, this->direction.x); // TODO replace with regular division.
-        fracs.y = __fdividef(1.0f, this->direction.y);
-        fracs.z = __fdividef(1.0f, this->direction.z);
+    __host__ __device__ void recalc_fracs() {
+        fracs.x = 1.0f / this->direction.x;
+        fracs.y = 1.0f / this->direction.y;
+        fracs.z = 1.0f / this->direction.z;
     }
     vec3 origin;
     vec3 direction;
@@ -90,6 +88,23 @@ struct Octree {
     __host__ void insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx);
     __host__ void insert_triangles(Vertex *vertices, Triangle *triangles, size_t n_triangles);
     __device__ bool get_closest_intersection(
+            Vertex *vertices, 
+            Triangle *triangles, 
+            const Ray &ray, 
+            Intersection &bestHit,
+            Entity *entity
+    );
+    __device__ bool ray_step(
+            Vertex *vertices, 
+            Triangle *triangles, 
+            const Ray &ray, 
+            Intersection &bestHit,
+            Entity *entity
+    );
+    __device__ bool proc_subtree(
+            unsigned char a,
+            vec3 t0, 
+            vec3 t1,
             Vertex *vertices, 
             Triangle *triangles, 
             const Ray &ray, 

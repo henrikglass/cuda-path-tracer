@@ -65,7 +65,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.camera     = camera;
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
-    config.n_samples  = 100;
+    config.n_samples  = 10;
 
     std::cout << "start render" << std::endl;
     // render on device
@@ -113,18 +113,19 @@ void device_render(RenderConfig config) {
     //if (u != 10 || v != 10)
     //    return;
 
-    //Intersection hit;
-    //Ray ray = create_ray(config.camera, u, v);
-    //if (!get_closest_intersection_in_scene(
-    //        ray, 
-    //        config.scene->d_entities, 
-    //        config.scene->n_entities, 
-    //        hit
-    //)) {
-    //    return;
-    //}
-//
-    //// normal
+    /*curandState &local_rand_state = config.rand_state[pixel_idx];
+    Intersection hit;
+    Ray ray = create_ray(config.camera, u, v, &local_rand_state);
+    if (!get_closest_intersection_in_scene(
+            ray, 
+            config.scene->d_entities, 
+            config.scene->n_entities, 
+            hit
+    )) {
+        return;
+    }*/
+
+    // normal
     //config.buf[pixel_idx] =  (hit.normal + vec3(1,1,1)) / 2;
 
     curandState &local_rand_state = config.rand_state[pixel_idx];
@@ -138,7 +139,7 @@ void device_render(RenderConfig config) {
     }
 
     config.buf[pixel_idx] = config.buf[pixel_idx] + result;
-
+    
 }
 
 __device__ Ray create_ray(Camera camera, int u, int v, curandState *local_rand_state) {
