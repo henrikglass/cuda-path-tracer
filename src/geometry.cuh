@@ -1,6 +1,7 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
+#define MAX_OCTREE_DEPTH 5
 #define EPSILON 0.00000001f
 
 #include <string>
@@ -12,13 +13,15 @@
 enum Shape {SPHERE, TRIANGLE_MESH};
 
 struct Ray {
-    __device__ Ray(vec3 origin, vec3 direction) {
+    __host__ __device__ Ray(vec3 origin, vec3 direction) {
         this->origin    = origin;
         this->direction = direction;
+#ifdef __CUDA_ARCH__
         recalc_fracs();
+#endif
     }
     __device__ void recalc_fracs() {
-        fracs.x = __fdividef(1.0f, this->direction.x);
+        fracs.x = __fdividef(1.0f, this->direction.x); // TODO replace with regular division.
         fracs.y = __fdividef(1.0f, this->direction.y);
         fracs.z = __fdividef(1.0f, this->direction.z);
     }
@@ -68,6 +71,7 @@ struct AABB {
     }
     __host__ void recalculate(Vertex *vertices, int n_vertices);
     __host__ bool contains_triangle(vec3 v0, vec3 v1, vec3 v2);
+    __host__ bool intersects_triangle(const vec3 &v0, const vec3 &v1, const vec3 &v2);
     __device__ bool intersects(const Ray &ray, const Intersection &bestHit);
     vec3 min;
     vec3 max;
@@ -106,7 +110,6 @@ class Entity {
 private:
 
     // for triangle mesh case:
-    Octree *octree        = nullptr;
     Octree *d_octree      = nullptr;
     Vertex *vertices      = nullptr;
     Vertex *d_vertices    = nullptr;
@@ -169,6 +172,7 @@ public:
     Material material;
 
     bool on_device = false;
+    Octree *octree        = nullptr;
 
 };
 

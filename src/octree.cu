@@ -1,5 +1,3 @@
-#define MAX_OCTREE_DEPTH 5
-
 #include "geometry.cuh"
 #include "util.cuh"
 
@@ -75,7 +73,7 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     float x_mid = 0.5f * (x_min + x_max);
     float y_mid = 0.5f * (y_min + y_max);
     float z_mid = 0.5f * (z_min + z_max);
-    int _case = -1; // 0 no single child fits triangle
+    //int _case = -1; // 0 no single child fits triangle
 
     AABB c[8];
     c[0] = AABB(vec3(x_min, y_min, z_min), vec3(x_mid, y_mid, z_mid));
@@ -87,7 +85,8 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     c[6] = AABB(vec3(x_min, y_mid, z_mid), vec3(x_mid, y_max, z_max));
     c[7] = AABB(vec3(x_mid, y_mid, z_mid), vec3(x_max, y_max, z_max));
 
-    for (int i = 0; i < 8; i++) {
+    // old way
+    /*for (int i = 0; i < 8; i++) {
         _case = (c[i].contains_triangle(v0, v1, v2)) ? i : _case;
     }
 
@@ -100,6 +99,25 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
             this->children[_case] = new Octree(c[_case], this->depth + 1);
         }
         this->children[_case]->insert_triangle(v0, v1, v2, triangle_idx);
+    }*/
+
+    // new way
+    if (this->depth == MAX_OCTREE_DEPTH) {
+        // If this is a leaf add triangle
+        this->triangle_indices.push_back(triangle_idx);
+        this->n_triangle_indices++;
+    } else {
+        // Else add to children
+        for (int i = 0; i < 8; i++) {
+            if (!c[i].intersects_triangle(v0, v1, v2))
+                continue;
+
+            if (this->children[i] == nullptr) {
+                this->children[i] = new Octree(c[i], this->depth + 1);
+            }
+
+            this->children[i]->insert_triangle(v0, v1, v2, triangle_idx);
+        }
     }
 }
 

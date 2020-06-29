@@ -65,7 +65,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.camera     = camera;
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
-    config.n_samples  = 2000;
+    config.n_samples  = 100;
 
     std::cout << "start render" << std::endl;
     // render on device

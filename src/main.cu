@@ -65,6 +65,7 @@ int main(void) {
     floor.print();
     dragon.print();
     //dragon.octree->pretty_print(0);
+    //exit(0);
     scene.add_entity(&dragon);
     scene.add_entity(&floor);
     //scene.add_entity(&ceiling);
