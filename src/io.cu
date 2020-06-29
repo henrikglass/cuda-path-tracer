@@ -1,7 +1,7 @@
 #define PRECISION_8 255
 #define PRECISION_16 65535
 
-#include "io.h"
+#include "io.cuh"
 
 float ffmin(float a, float b) {
     return (a < b) ? a : b;

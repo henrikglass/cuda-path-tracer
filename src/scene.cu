@@ -18,6 +18,14 @@ void Scene::set_hdri(const std::string &path) {
     has_hdri = true;
 }
 
+void Scene::set_hdri_exposure(float exposure) {
+    this->hdri_exposure = exposure;
+}
+
+void Scene::set_hdri_contrast(float contrast) {
+    this->hdri_contrast = contrast;
+}
+
 void Scene::use_hdri_smoothing(bool b) {
     this->use_smooth_hdri = b;
 }

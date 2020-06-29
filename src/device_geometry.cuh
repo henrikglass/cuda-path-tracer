@@ -1,20 +1,34 @@
 
-#include "geometry.cuh"
-#include <math.h>
-#include <stdlib.h>
-#include <iostream>
-#include <vector>
-#include "util.cuh"
+__device__ bool intersect_triangle(
+        vec3 v0, 
+        vec3 v1, 
+        vec3 v2, 
+        Triangle *triangle,
+        Entity *entity, 
+        Intersection &bestHit, 
+        const Ray &ray
+);
+
+__device__ bool intersects_aabb(
+        float min_x,
+        float min_y,
+        float min_z,
+        float max_x,
+        float max_y,
+        float max_z,
+        const Ray &ray,
+        const Intersection &bestHit
+);
 
 __device__
-bool Octree::get_closest_intersection(
+inline bool Octree::get_closest_intersection(
         Vertex *vertices, 
         Triangle *triangles, 
         const Ray &ray, 
         Intersection &bestHit,
         Entity *entity
 ) {
-    if(!this->region.intersects(ray))
+    if(!this->region.intersects(ray, bestHit))
         return false;
     
     // check intersections for triangle in this node
@@ -39,11 +53,14 @@ bool Octree::get_closest_intersection(
 }
 
 __device__
-bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, int n_entities, Intersection &is) {
+inline bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, int n_entities, Intersection &is) {
     bool is_hit = false;
+    //long t1 = clock();
     for (int i = 0; i < n_entities; i++) {
         is_hit = entities[i].get_closest_intersection(ray, is) || is_hit;
     }
+    //long t2 = clock();
+    //printf("t: %ld\n", t2 - t1);
 
     // if hit entity has smooth_shading enabled, adjust the normal
     Triangle *tr = is.triangle;
@@ -63,7 +80,7 @@ bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, int n_e
 }
 
 __device__
-bool Entity::get_closest_intersection(const Ray &ray, Intersection &bestHit) {
+inline bool Entity::get_closest_intersection(const Ray &ray, Intersection &bestHit) {
     switch (this->shape) {
         case SPHERE:
             return get_closest_sphere_intersection(ray, bestHit);
@@ -75,13 +92,13 @@ bool Entity::get_closest_intersection(const Ray &ray, Intersection &bestHit) {
 }
 
 __device__
-bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit) {
+inline bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit) {
     vec3 d = ray.origin - this->center;
     float p1 = -dot(ray.direction, d);
-    float p2sqr = p1 * p1 - dot(d,d) + this->radius * this->radius;
+    float p2sqr = __fsub_rn(__fmul_rn(p1, p1), dot(d,d)) + __fmul_rn(this->radius, this->radius);
     if (p2sqr < 0)
         return false;
-    float p2 = sqrtf(p2sqr); // sqrt(p2sqr)
+    float p2 = __fdividef(1.0f, __frsqrt_rn(p2sqr)); // sqrt(p2sqr)
     float t = p1 - p2 > 0 ? p1 - p2 : p1 + p2;
     if (t > 0 && t < bestHit.distance)
     {
@@ -96,15 +113,15 @@ bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection &bestH
 }
 
 __device__
-bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit) {
-    if (!this->aabb.intersects(ray))
+inline bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit) {
+    if (!this->aabb.intersects(ray, bestHit))
         return false;
     
     // no octree. Check against all triangles.
     if (this->octree == nullptr) {
         //printf("as list");
         bool hit = false;
-        for (int i = 0; i < this->n_triangles; i++) {
+        for (size_t i = 0; i < this->n_triangles; i++) {
             hit = intersects_triangle(&(this->d_triangles[i]), bestHit, ray) || hit;
         }
         return hit;
@@ -121,7 +138,7 @@ bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Intersection
 }
 
 __device__
-bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHit, const Ray &ray) {
+inline bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHit, const Ray &ray) {
     vec3 v0 = this->d_vertices[triangle->idx_a].position;
     vec3 v1 = this->d_vertices[triangle->idx_b].position;
     vec3 v2 = this->d_vertices[triangle->idx_c].position;
@@ -134,7 +151,7 @@ bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHit, cons
  * http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/raytri_tam.pdf
  */
 __device__ 
-bool intersect_triangle(
+inline bool intersect_triangle(
         vec3 v0, 
         vec3 v1, 
         vec3 v2, 
@@ -155,15 +172,15 @@ bool intersect_triangle(
     if (fabs(det) < EPSILON) 
         return false;
     
-    inv_det = 1.0f / det;
+    inv_det = __fdividef(1.0f, det); // 1.0f / det
     tvec = ray.origin - v0;
     u = dot(tvec, pvec) * inv_det;
-    if (u < 0.0f || u > 1.0f)
+    if (u < -0.0001f || u > 1.0001f)
         return false;
 
     qvec = cross(tvec, e1);
     v = dot(ray.direction, qvec) * inv_det;
-    if (v < 0.0f || u + v > 1.0f)
+    if (v < -0.0001f || u + v > 1.0001f)
         return false;
 
     t = dot(e2, qvec) * inv_det; 
@@ -171,7 +188,7 @@ bool intersect_triangle(
     if(t > 0 && t < bestHit.distance) {
         bestHit.distance = t;
         bestHit.position = ray.origin + t * ray.direction;
-        bestHit.normal = cross(e1, e2).normalized(); // TODO SMOOTH SHADING
+        bestHit.normal = cross(e1, e2).normalized();
         bestHit.entity = entity;
         bestHit.triangle = triangle;
         bestHit.u = u;
@@ -183,7 +200,7 @@ bool intersect_triangle(
 }
 
 __device__ 
-bool AABB::intersects(const Ray &ray) {
+inline bool AABB::intersects(const Ray &ray, const Intersection &bestHit) {
     return intersects_aabb(
             this->min.x,
             this->min.y,
@@ -191,27 +208,28 @@ bool AABB::intersects(const Ray &ray) {
             this->max.x,
             this->max.y,
             this->max.z,
-            ray
+            ray,
+            bestHit
     );
 }
 
 __device__
-bool intersects_aabb(
+inline bool intersects_aabb(
         float min_x,
         float min_y,
         float min_z,
         float max_x,
         float max_y,
         float max_z,
-        const Ray &ray
+        const Ray &ray,
+        const Intersection &bestHit
 ) {
-
-    float tx1 = (min_x - ray.origin.x)*(1.0f / ray.direction.x);
-    float tx2 = (max_x - ray.origin.x)*(1.0f / ray.direction.x);
-    float ty1 = (min_y - ray.origin.y)*(1.0f / ray.direction.y);
-    float ty2 = (max_y - ray.origin.y)*(1.0f / ray.direction.y);
-    float tz1 = (min_z - ray.origin.z)*(1.0f / ray.direction.z);
-    float tz2 = (max_z - ray.origin.z)*(1.0f / ray.direction.z);
+    float tx1 = (min_x - ray.origin.x) * ray.fracs.x;
+    float tx2 = (max_x - ray.origin.x) * ray.fracs.x;
+    float ty1 = (min_y - ray.origin.y) * ray.fracs.y;
+    float ty2 = (max_y - ray.origin.y) * ray.fracs.y;
+    float tz1 = (min_z - ray.origin.z) * ray.fracs.z;
+    float tz2 = (max_z - ray.origin.z) * ray.fracs.z;
 
     float tmin = fminf(tx1, tx2);
     float tmax = fmaxf(tx1, tx2);
@@ -219,6 +237,19 @@ bool intersects_aabb(
     tmax = fminf(tmax, fmaxf(ty1, ty2));
     tmin = fmaxf(tmin, fminf(tz1, tz2));
     tmax = fminf(tmax, fmaxf(tz1, tz2));
- 
-    return tmin < tmax;
+    
+    // box behind
+    if (tmax < 0.0f)
+        return false;
+    
+    // no intersection
+    if (tmin > tmax)
+        return false;
+
+    // we've already intersected some entity nearer ray origin 
+    if (bestHit.distance < tmin)
+        return false;
+
+    return true;
+
 }

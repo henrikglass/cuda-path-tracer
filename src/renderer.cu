@@ -33,9 +33,8 @@ Image render(const Camera &camera, Scene &scene) {
            devID, props.name, props.major, props.minor);
 
     // Decide on tile size, # of threads and # of blocks
-    int tile_size = 16; // 16x16 pixels
-    int samples_per_pixel = 1;
-    int n_samples_total = n_pixels * samples_per_pixel;
+    int tile_size = 8; // 16x16 pixels
+    //int samples_per_pixel = 10;
     dim3 blocks(
             camera.resolution.x / tile_size + 1, 
             camera.resolution.y / tile_size + 1
@@ -57,7 +56,7 @@ Image render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaDeviceSynchronize());
 
     // add z dimension for # of samples per pixel
-    blocks.z = samples_per_pixel;
+    //blocks.z = samples_per_pixel;
 
     // setup RenderConfig
     RenderConfig config;
@@ -66,7 +65,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.camera     = camera;
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
-    config.n_samples  = 2048;
+    config.n_samples  = 2000;
 
     std::cout << "start render" << std::endl;
     // render on device
@@ -100,7 +99,7 @@ void render_init(Camera camera, curandState *rand_state) {
     int pixel_idx = y * camera.resolution.x +  x;
     if ((x >= camera.resolution.x) || (y >= camera.resolution.y))
         return;
-    curand_init(clock(), pixel_idx, 0, &rand_state[pixel_idx]);
+    curand_init(1337, pixel_idx, 0, &rand_state[pixel_idx]);
 }
 
 __global__
@@ -110,6 +109,23 @@ void device_render(RenderConfig config) {
     int pixel_idx = v * config.camera.resolution.x +  u;
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
+    
+    //if (u != 10 || v != 10)
+    //    return;
+
+    //Intersection hit;
+    //Ray ray = create_ray(config.camera, u, v);
+    //if (!get_closest_intersection_in_scene(
+    //        ray, 
+    //        config.scene->d_entities, 
+    //        config.scene->n_entities, 
+    //        hit
+    //)) {
+    //    return;
+    //}
+//
+    //// normal
+    //config.buf[pixel_idx] =  (hit.normal + vec3(1,1,1)) / 2;
 
     curandState &local_rand_state = config.rand_state[pixel_idx];
 
@@ -117,7 +133,7 @@ void device_render(RenderConfig config) {
     vec3 result(0, 0, 0);
     int ns = config.n_samples; // 1000
     for (int i = 0; i < ns; i++) {
-        Ray ray = create_ray(config.camera, u, v);
+        Ray ray = create_ray(config.camera, u, v, &local_rand_state);
         result = result + color(ray, config.scene, &local_rand_state);
     }
 
@@ -125,10 +141,10 @@ void device_render(RenderConfig config) {
 
 }
 
-__device__ Ray create_ray(Camera camera, int u, int v) {
+__device__ Ray create_ray(Camera camera, int u, int v, curandState *local_rand_state) {
     vec3 ray_orig = camera.position;
-    float n_u = (float(u) / float(camera.resolution.x)) - 0.5f;
-    float n_v = (float(v) / float(camera.resolution.y)) - 0.5f;
+    float n_u = (float(u + curand_uniform(local_rand_state)) / float(camera.resolution.x)) - 0.5f;
+    float n_v = (float(v + curand_uniform(local_rand_state)) / float(camera.resolution.y)) - 0.5f;
     float aspect_ratio = float(camera.resolution.x) / float(camera.resolution.y);
     vec3 camera_right = -cross(camera.direction, camera.up);
     vec3 point = n_u * camera_right * aspect_ratio - n_v * camera.up +
@@ -156,16 +172,18 @@ __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
             float roulette = curand_uniform(local_rand_state);
             if (roulette < spec_chance) {
                 // specular reflection
-                float alpha   = powf(1000.0f, m.smoothness * m.smoothness);
+                float alpha   = __powf(1000.0f, m.smoothness * m.smoothness);
                 ray.origin    = hit.position + hit.normal * 0.001f;
                 ray.direction = sample_hemisphere(reflect(ray.direction, hit.normal), alpha, local_rand_state);
+                ray.recalc_fracs();
                 float f       = (alpha + 2) / (alpha + 1);
                 attenuation   = attenuation * (1.0f / spec_chance) * specular * f * dot(hit.normal, ray.direction);
             } else {
                 // diffuse reflection
                 result        = result + m.emission * m.albedo * attenuation;
                 ray.origin    = hit.position + hit.normal * 0.001f;
-                ray.direction = sample_hemisphere(hit.normal, 1.0f, local_rand_state).normalized();
+                ray.direction = sample_hemisphere(hit.normal, 1.0f, local_rand_state);
+                ray.recalc_fracs();
                 attenuation   = attenuation * (1.0f / diff_chance) * albedo;
             }
         } else {
@@ -182,10 +200,10 @@ __device__ vec3 reflect(const vec3 &dir, const vec3 &normal) {
 }
 
 __device__ vec3 sample_hemisphere(const vec3 &dir, float alpha, curandState *local_rand_state) {    
-    float cos_theta = powf(curand_uniform(local_rand_state), 1.0f / (alpha + 1.0f));
-    float sin_theta = sqrtf(1.0f - cos_theta * cos_theta);
+    float cos_theta = __powf(curand_uniform(local_rand_state), 1.0f / (alpha + 1.0f));
+    float sin_theta = __fsqrt_rn(1.0f - cos_theta * cos_theta);
     float phi = 2 * PI * curand_uniform(local_rand_state);
-    vec3 tangent_space_dir = vec3(cosf(phi) * sin_theta, sinf(phi) * sin_theta, cos_theta);
+    vec3 tangent_space_dir = vec3(__cosf(phi) * sin_theta, __sinf(phi) * sin_theta, cos_theta);
     return tangent_space_dir * get_tangent_space(dir);
 }
 

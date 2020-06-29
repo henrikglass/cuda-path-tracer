@@ -12,14 +12,19 @@
 enum Shape {SPHERE, TRIANGLE_MESH};
 
 struct Ray {
-    __device__ __host__ Ray(vec3 origin, vec3 direction/*, vec3 energy*/) {
+    __device__ Ray(vec3 origin, vec3 direction) {
         this->origin    = origin;
         this->direction = direction;
-        //this->energy    = energy;
+        recalc_fracs();
+    }
+    __device__ void recalc_fracs() {
+        fracs.x = __fdividef(1.0f, this->direction.x);
+        fracs.y = __fdividef(1.0f, this->direction.y);
+        fracs.z = __fdividef(1.0f, this->direction.z);
     }
     vec3 origin;
     vec3 direction;
-    //vec3 energy;
+    vec3 fracs;
 };
 
 struct Vertex {
@@ -41,19 +46,6 @@ struct Triangle {
     int idx_a, idx_b, idx_c;
 };
 
-struct AABB {
-    AABB() {}
-    AABB(vec3 min, vec3 max) {
-        this->min = min - vec3(0.1f, 0.1f, 0.1f);
-        this->max = max + vec3(0.1f, 0.1f, 0.1f);
-    }
-    __host__ void recalculate(Vertex *vertices, int n_vertices);
-    __host__ bool contains_triangle(vec3 v0, vec3 v1, vec3 v2);
-    __device__ bool intersects(const Ray &ray);
-    vec3 min;
-    vec3 max;
-};
-
 class Entity;
 
 struct Intersection {
@@ -66,6 +58,19 @@ struct Intersection {
     Entity *entity;
     Triangle *triangle = nullptr;
     float u, v;
+};
+
+struct AABB {
+    AABB() {}
+    AABB(vec3 min, vec3 max) {
+        this->min = min - vec3(0.1f, 0.1f, 0.1f);
+        this->max = max + vec3(0.1f, 0.1f, 0.1f);
+    }
+    __host__ void recalculate(Vertex *vertices, int n_vertices);
+    __host__ bool contains_triangle(vec3 v0, vec3 v1, vec3 v2);
+    __device__ bool intersects(const Ray &ray, const Intersection &bestHit);
+    vec3 min;
+    vec3 max;
 };
 
 struct Octree {
@@ -167,16 +172,6 @@ public:
 
 };
 
-__device__ bool intersect_triangle(
-        vec3 v0, 
-        vec3 v1, 
-        vec3 v2, 
-        Triangle *triangle,
-        Entity *entity, 
-        Intersection &bestHit, 
-        const Ray &ray
-);
-
 __host__ inline bool triangle_inside_aabb(
         float min_x,
         float min_y,
@@ -199,16 +194,10 @@ __host__ inline bool inside_aabb(
         const vec3 &point
 );
 
-__device__ bool intersects_aabb(
-        float min_x,
-        float min_y,
-        float min_z,
-        float max_x,
-        float max_y,
-        float max_z,
-        const Ray &ray
-);
+// definitions put in header because of cuda profiling 
+// limitations with multiple compile units.
+// also helps with inlining.
 
-
+#include "device_geometry.cuh"
 
 #endif

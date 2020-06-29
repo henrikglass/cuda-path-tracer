@@ -1,8 +1,6 @@
 #ifndef IO_H
 #define IO_H
 
-#include "cuda_runtime.h"
-
 #include <vector>
 #include <string>
 #include "vector.cuh"

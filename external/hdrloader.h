@@ -33,6 +33,7 @@ public:
     }
 
     void copy_to_device() {
+        printf("copy hdri to device!");
         this->free_from_device();
         size_t size = width * height * 3 * sizeof(float);
         cudaMalloc(&this->d_cols, size);

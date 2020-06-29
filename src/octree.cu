@@ -1,4 +1,4 @@
-#define MAX_OCTREE_DEPTH 4
+#define MAX_OCTREE_DEPTH 5
 
 #include "geometry.cuh"
 #include "util.cuh"

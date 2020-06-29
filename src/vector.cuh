@@ -1,7 +1,7 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#include <math.h>
+//#include <math.h>
 #include <iostream>
 
 // 2 dimensional int vector
@@ -29,8 +29,12 @@ struct vec2 {
         return vec2(this->x - v.x, this->y - v.y);
     }
     __device__ __host__ vec2 normalized() const {
-        float norm = sqrtf(this->x * this->x + this->y * this->y);
-        return vec2(this->x / norm, this->y / norm);
+#ifndef __CUDA_ARCH__
+        float rnorm = rsqrt(this->x * this->x + this->y * this->y);
+#else
+        float rnorm = __frsqrt_rn(this->x * this->x + this->y * this->y);
+#endif
+        return vec2(this->x * rnorm, this->y * rnorm);
     }
     __device__ __host__ void normalize() {
         vec2 nv = this->normalized();
@@ -63,8 +67,12 @@ struct vec3 {
         return vec3(-this->x, -this->y, -this->z);
     }
     __device__ __host__ vec3 normalized() const {
-        float norm = sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
-        return vec3(this->x / norm, this->y / norm, this->z / norm);
+#ifndef __CUDA_ARCH__
+        float rnorm = rsqrt(this->x * this->x + this->y * this->y + this->z * this->z);
+#else
+        float rnorm = __frsqrt_rn(this->x * this->x + this->y * this->y + this->z * this->z);
+#endif
+        return vec3(this->x * rnorm, this->y * rnorm, this->z * rnorm);
     }
     __device__ __host__ void normalize() {
         vec3 nv = this->normalized();
@@ -94,7 +102,7 @@ __device__ inline float distance(const vec3 &a, const vec3 &b) {
     float dx = b.x - a.x;
     float dy = b.y - a.y;
     float dz = b.z - a.z;
-    return sqrtf(dx*dx + dy*dy + dz*dz);
+    return __fsqrt_rn(dx*dx + dy*dy + dz*dz);
 }
 
 __device__ inline vec3 min(const vec3 &a, const vec3 &b) {
