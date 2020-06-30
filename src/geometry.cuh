@@ -213,10 +213,6 @@ __host__ inline bool inside_aabb(
         const vec3 &point
 );
 
-// definitions put in header because of cuda profiling 
-// limitations with multiple compile units.
-// also helps with inlining.
 
-#include "device_geometry.cuh"
 
 #endif

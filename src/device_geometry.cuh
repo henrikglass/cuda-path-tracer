@@ -65,24 +65,29 @@ inline bool Octree::ray_step(
         Entity *entity
 ) {
     Ray r(ray);
-    vec3 oct_size = this->region.max - this->region.min;
+    vec3 oct_mid = 0.5f * (this->region.max + this->region.min);
 
     unsigned char a = 0;
     if (r.direction.x < 0.0f) {
-        r.origin.x = oct_size.x - ray.origin.x;
+        float delta = r.origin.x - oct_mid.x;
+        r.origin.x = oct_mid.x - delta;
         r.direction.x = -(r.direction.x);
         a |= 0b100; // 4
     }
     if (r.direction.y < 0.0f) {
-        r.origin.y = oct_size.y - ray.origin.y;
+        float delta = r.origin.y - oct_mid.y;
+        r.origin.y = oct_mid.y - delta;
         r.direction.y = -(r.direction.y);
         a |= 0b010; // 2
     }
     if (r.direction.z < 0.0f) {
-        r.origin.z = oct_size.z - ray.origin.z;
+        float delta = r.origin.z - oct_mid.z;
+        r.origin.z = oct_mid.z - delta;
         r.direction.z = -(r.direction.z);
         a |= 0b001; // 1
     }
+
+    //printf("a: %d\n", a);
 
     if (a != 0) 
         r.recalc_fracs();
@@ -96,7 +101,7 @@ inline bool Octree::ray_step(
     float tmin = fmaxf(fmaxf(tx0, ty0), tz0);
     float tmax = fminf(fminf(tx1, ty1), tz1);
 
-    if ((tmin < tmax) && (tmax > 0.0f)) {
+    if ((tmin < tmax) /*&& (tmax > 0.0f)*/) {
         return proc_subtree(
             a,
             vec3(tx0, ty0, tz0),
@@ -114,20 +119,20 @@ inline int find_first_node(vec3 t0, vec3 tM) {
     unsigned char answer = 0;
     if (t0.x > t0.y) {
         if (t0.x > t0.z) { // YZ plane
-            if (tM.y < t0.x) answer |= 0b010;
-            if (tM.z < t0.x) answer |= 0b001;
+            if (tM.y < t0.x) answer |= 2;//0b010;
+            if (tM.z < t0.x) answer |= 1;//0b001;
             return (int) answer;
         }  
     } else {
         if (t0.y > t0.z) { // XZ plane
-            if (tM.x < t0.y) answer |= 0b100;
-            if (tM.z < t0.y) answer |= 0b001;
+            if (tM.x < t0.y) answer |= 4;//0b100;
+            if (tM.z < t0.y) answer |= 1;//0b001;
             return (int) answer;
         }  
     } 
     // XY plane
-    if (tM.x < t0.z) answer |= 0b100;
-    if (tM.y < t0.z) answer |= 0b010;
+    if (tM.x < t0.z) answer |= 4;//0b100;
+    if (tM.y < t0.z) answer |= 2;//0b010;
     return (int) answer;
 }
 
@@ -154,7 +159,8 @@ inline bool Octree::proc_subtree(
 ) {
     int curr_node;
 
-    if ((t1.x <= 0.0f) || (t1.y <= 0.0f) || (t1.y <= 0.0f))
+    // not necessary?
+    if ((t1.x < 0.0f) || (t1.y < 0.0f) || (t1.y < 0.0f))
         return false;
 
     // if leaf check intersections for triangle in this node
@@ -176,7 +182,10 @@ inline bool Octree::proc_subtree(
 
     curr_node = find_first_node(t0, tM);
 
-    // do only if child[4^a] 
+    //printf("first_node: %d\n", curr_node^a);
+    //return false;
+
+    // do only if child[curr_node^a] != nullptr
     bool hit = false;
     do {
         switch (curr_node) {

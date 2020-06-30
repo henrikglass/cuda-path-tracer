@@ -51,7 +51,8 @@ int main(void) {
     light.scale(0.35f);
     dragon.scale(75.0f);
     dragon.rotate(vec3(0, -3.14159265f / 1.8f, 0));
-    dragon.translate(vec3(30, 26.5, 16));
+    dragon.translate(vec3(30, 26.5, 16)); // BUG!!! everything below x=0 cut off!
+    //dragon.translate(vec3(40, 26.5, 16)); // BUG!!! dragon cut in half!
     //light0.scale(0.25f);
     //light1.scale(0.25f);
     //light2.scale(0.25f);
@@ -90,7 +91,9 @@ int main(void) {
 
     // camera
     ivec2 res = ivec2(1024, 768);
-    Camera camera(vec3(127.5f, 27.5f, -100), vec3(-0.5, 0, 1).normalized(), res, 1.2f);
+    Camera camera(vec3(30, 27.5f, -100), vec3(0, 0, 1).normalized(), res, 1.2f);
+    //Camera camera(vec3(127.5f, 27.5f, -100), vec3(-0.5, 0, 1).normalized(), res, 1.2f);
+    //Camera camera(vec3(-75.5f, 27.5f, -100), vec3(0.5, 0, 1).normalized(), res, 1.2f);
 
     // render
     Image image = render(camera, scene);

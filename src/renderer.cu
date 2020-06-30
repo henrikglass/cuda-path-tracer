@@ -6,6 +6,12 @@
 #include "util.cuh"
 #include "vector.cuh"
 
+// definitions put in header because of cuda profiling 
+// limitations with multiple compile units.
+// also helps with inlining.
+
+#include "device_geometry.cuh"
+
 Image render(const Camera &camera, Scene &scene) {
     // Allocate output image buffer on device
     int n_pixels = camera.resolution.x * camera.resolution.y;
@@ -80,7 +86,7 @@ Image render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaPeekAtLastError());
 
     // normalize and gamma correct image
-    normalize_and_gamma_correct(result_pixels, config.n_samples, 2.2f);
+    //normalize_and_gamma_correct(result_pixels, config.n_samples, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -110,10 +116,10 @@ void device_render(RenderConfig config) {
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
     
-    //if (u != 10 || v != 10)
+    //if (!(u == 450 && v == 350) /*&& !(u == 600 && v == 350)*/)
     //    return;
 
-    /*curandState &local_rand_state = config.rand_state[pixel_idx];
+    curandState &local_rand_state = config.rand_state[pixel_idx];
     Intersection hit;
     Ray ray = create_ray(config.camera, u, v, &local_rand_state);
     if (!get_closest_intersection_in_scene(
@@ -123,12 +129,12 @@ void device_render(RenderConfig config) {
             hit
     )) {
         return;
-    }*/
+    }
 
     // normal
-    //config.buf[pixel_idx] =  (hit.normal + vec3(1,1,1)) / 2;
+    config.buf[pixel_idx] =  (hit.normal + vec3(1,1,1)) / 2;
 
-    curandState &local_rand_state = config.rand_state[pixel_idx];
+    /*curandState &local_rand_state = config.rand_state[pixel_idx];
 
     // color pixel
     vec3 result(0, 0, 0);
@@ -138,7 +144,7 @@ void device_render(RenderConfig config) {
         result = result + color(ray, config.scene, &local_rand_state);
     }
 
-    config.buf[pixel_idx] = config.buf[pixel_idx] + result;
+    config.buf[pixel_idx] = config.buf[pixel_idx] + result;*/
     
 }
 
