@@ -203,7 +203,6 @@ void Entity::rotate(vec3 rot) {
     vec3 R1(/*[0,1]*/ sin_a * cos_b, /*[1,1]*/  sin_a*sin_b*sin_g + cos_a*cos_g, /*[2,1]*/  sin_a*sin_b*cos_g - cos_a*sin_g);
     vec3 R2(/*[0,2]*/ -sin_b,        /*[1,2]*/  cos_b*sin_g,                     /*[2,2]*/  cos_b*cos_g);
     
-    // rotate on x
     for (size_t i = 0; i < this->n_vertices; i++) {
         // rotate vertex positions
         vec3 v = this->vertices[i].position - this->center;

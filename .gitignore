@@ -13,3 +13,4 @@ include/
 TODO.txt
 examples/hdris
 metrics.txt
+*.txt

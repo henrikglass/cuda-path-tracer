@@ -68,13 +68,13 @@ inline bool Octree::ray_step(
     vec3 oct_mid = 0.5f * (this->region.max + this->region.min);
 
     unsigned char a = 0;
-    if (r.direction.x < 0.0f) {
+    if (r.direction.x < 0.0f ) {
         float delta = r.origin.x - oct_mid.x;
         r.origin.x = oct_mid.x - delta;
         r.direction.x = -(r.direction.x);
         a |= 0b100; // 4
     }
-    if (r.direction.y < 0.0f) {
+    if (r.direction.y < 0.0f ) {
         float delta = r.origin.y - oct_mid.y;
         r.origin.y = oct_mid.y - delta;
         r.direction.y = -(r.direction.y);
@@ -88,6 +88,8 @@ inline bool Octree::ray_step(
     }
 
     //printf("a: %d\n", a);
+    //r.direction = r.direction + EPSILON; 
+    //printf("ray: (%g, %g, %g)\n", r.direction.x, r.direction.z, r.direction.z);
 
     if (a != 0) 
         r.recalc_fracs();
@@ -182,12 +184,13 @@ inline bool Octree::proc_subtree(
 
     curr_node = find_first_node(t0, tM);
 
-    //printf("first_node: %d\n", curr_node^a);
+    
     //return false;
 
     // do only if child[curr_node^a] != nullptr
     bool hit = false;
     do {
+        //printf("d: %d  -- node: %d\n", this->depth, curr_node^a);
         switch (curr_node) {
         case 0:
             if (this->d_children[a] != nullptr) {

@@ -19,9 +19,9 @@ struct Ray {
         recalc_fracs();
     }
     __host__ __device__ void recalc_fracs() {
-        fracs.x = 1.0f / this->direction.x;
-        fracs.y = 1.0f / this->direction.y;
-        fracs.z = 1.0f / this->direction.z;
+        fracs.x = fminf(1.0f / this->direction.x, 1000000.0f); // @Incomplete magic#
+        fracs.y = fminf(1.0f / this->direction.y, 1000000.0f);
+        fracs.z = fminf(1.0f / this->direction.z, 1000000.0f);
     }
     vec3 origin;
     vec3 direction;

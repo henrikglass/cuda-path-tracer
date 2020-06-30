@@ -116,7 +116,7 @@ void device_render(RenderConfig config) {
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
     
-    //if (!(u == 450 && v == 350) /*&& !(u == 600 && v == 350)*/)
+    //if (!(u == 512 && v == 370) /*&& !(u == 600 && v == 350)*/)
     //    return;
 
     curandState &local_rand_state = config.rand_state[pixel_idx];
@@ -150,8 +150,8 @@ void device_render(RenderConfig config) {
 
 __device__ Ray create_ray(Camera camera, int u, int v, curandState *local_rand_state) {
     vec3 ray_orig = camera.position;
-    float n_u = (float(u + curand_uniform(local_rand_state)) / float(camera.resolution.x)) - 0.5f;
-    float n_v = (float(v + curand_uniform(local_rand_state)) / float(camera.resolution.y)) - 0.5f;
+    float n_u = (float(u /*+ curand_uniform(local_rand_state)*/) / float(camera.resolution.x)) - 0.5f;
+    float n_v = (float(v /*+ curand_uniform(local_rand_state)*/) / float(camera.resolution.y)) - 0.5f;
     float aspect_ratio = float(camera.resolution.x) / float(camera.resolution.y);
     vec3 camera_right = -cross(camera.direction, camera.up);
     vec3 point = n_u * camera_right * aspect_ratio - n_v * camera.up +
