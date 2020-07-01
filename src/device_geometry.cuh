@@ -176,17 +176,17 @@ inline bool Octree::proc_subtree(
     curr_node = find_first_node(t0, tM);
     bool hit = false;
     do {
-        unsigned int xord = curr_node ^ a;
-        if (this->d_children[xord] != nullptr) {
+        unsigned char adj_curr_node = curr_node ^ a;
+        if (this->d_children[adj_curr_node] != nullptr) {
             switch (curr_node) {
-                case 0: hit = this->d_children[xord]->proc_subtree(a, vec3(t0.x, t0.y, t0.z), vec3(tM.x, tM.y, tM.z), ray, bestHit, entity) || hit; break;
-                case 1: hit = this->d_children[xord]->proc_subtree(a, vec3(t0.x, t0.y, tM.z), vec3(tM.x, tM.y, t1.z), ray, bestHit, entity) || hit; break;
-                case 2: hit = this->d_children[xord]->proc_subtree(a, vec3(t0.x, tM.y, t0.z), vec3(tM.x, t1.y, tM.z), ray, bestHit, entity) || hit; break;
-                case 3: hit = this->d_children[xord]->proc_subtree(a, vec3(t0.x, tM.y, tM.z), vec3(tM.x, t1.y, t1.z), ray, bestHit, entity) || hit; break;
-                case 4: hit = this->d_children[xord]->proc_subtree(a, vec3(tM.x, t0.y, t0.z), vec3(t1.x, tM.y, tM.z), ray, bestHit, entity) || hit; break;
-                case 5: hit = this->d_children[xord]->proc_subtree(a, vec3(tM.x, t0.y, tM.z), vec3(t1.x, tM.y, t1.z), ray, bestHit, entity) || hit; break;
-                case 6: hit = this->d_children[xord]->proc_subtree(a, vec3(tM.x, tM.y, t0.z), vec3(t1.x, t1.y, tM.z), ray, bestHit, entity) || hit; break;
-                case 7: hit = this->d_children[xord]->proc_subtree(a, vec3(tM.x, tM.y, tM.z), vec3(t1.x, t1.y, t1.z), ray, bestHit, entity) || hit; break;
+                case 0: hit = this->d_children[adj_curr_node]->proc_subtree(a, vec3(t0.x, t0.y, t0.z), vec3(tM.x, tM.y, tM.z), ray, bestHit, entity) || hit; break;
+                case 1: hit = this->d_children[adj_curr_node]->proc_subtree(a, vec3(t0.x, t0.y, tM.z), vec3(tM.x, tM.y, t1.z), ray, bestHit, entity) || hit; break;
+                case 2: hit = this->d_children[adj_curr_node]->proc_subtree(a, vec3(t0.x, tM.y, t0.z), vec3(tM.x, t1.y, tM.z), ray, bestHit, entity) || hit; break;
+                case 3: hit = this->d_children[adj_curr_node]->proc_subtree(a, vec3(t0.x, tM.y, tM.z), vec3(tM.x, t1.y, t1.z), ray, bestHit, entity) || hit; break;
+                case 4: hit = this->d_children[adj_curr_node]->proc_subtree(a, vec3(tM.x, t0.y, t0.z), vec3(t1.x, tM.y, tM.z), ray, bestHit, entity) || hit; break;
+                case 5: hit = this->d_children[adj_curr_node]->proc_subtree(a, vec3(tM.x, t0.y, tM.z), vec3(t1.x, tM.y, t1.z), ray, bestHit, entity) || hit; break;
+                case 6: hit = this->d_children[adj_curr_node]->proc_subtree(a, vec3(tM.x, tM.y, t0.z), vec3(t1.x, t1.y, tM.z), ray, bestHit, entity) || hit; break;
+                case 7: hit = this->d_children[adj_curr_node]->proc_subtree(a, vec3(tM.x, tM.y, tM.z), vec3(t1.x, t1.y, t1.z), ray, bestHit, entity) || hit; break;
             }
         }
         switch (curr_node) {

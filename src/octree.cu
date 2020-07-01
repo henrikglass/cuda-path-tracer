@@ -27,7 +27,6 @@ void Octree::copy_to_device() {
         long size = sizeof(Octree);
         gpuErrchk(cudaMalloc(&(this->d_children[i]), size));
         gpuErrchk(cudaMemcpy(this->d_children[i], this->children[i], size, cudaMemcpyHostToDevice));
-        //gpuErrchk(cudaPeekAtLastError());
     }
 
     this->on_device = true;

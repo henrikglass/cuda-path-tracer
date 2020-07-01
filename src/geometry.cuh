@@ -120,14 +120,13 @@ struct Octree {
 };
 
 class Entity {
-public:
+private:
 
     // for triangle mesh case:
-    Octree *d_octree = nullptr;
-    Vertex *vertices        = nullptr;
-    Vertex *d_vertices      = nullptr;
-    Triangle *triangles     = nullptr;
-    Triangle *d_triangles   = nullptr;
+    Octree *octree      = nullptr;
+    Octree *d_octree    = nullptr;
+    Vertex *vertices    = nullptr;
+    Triangle *triangles = nullptr;
     size_t n_triangles;
     size_t n_vertices;
     AABB aabb;
@@ -185,7 +184,8 @@ public:
     Material material;
 
     bool on_device = false;
-    Octree *octree = nullptr;
+    Vertex *d_vertices      = nullptr;
+    Triangle *d_triangles   = nullptr;
 
 };
 

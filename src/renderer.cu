@@ -50,7 +50,7 @@ Image render(const Camera &camera, Scene &scene) {
     // set stack size limit. (Default proved too little for deep octrees)
     size_t limit = 0;
     cudaDeviceGetLimit(&limit, cudaLimitStackSize);
-    size_t new_limit = 1024 << 5;
+    size_t new_limit = 1024 << 4;
     cudaDeviceSetLimit( cudaLimitStackSize, new_limit );
     std::cout << "device stack limit: " << new_limit << "KiB" << std::endl;
 
@@ -71,7 +71,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.camera     = camera;
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
-    config.n_samples  = 100;
+    config.n_samples  = 2000;
 
     std::cout << "start render" << std::endl;
     // render on device
@@ -150,8 +150,8 @@ void device_render(RenderConfig config) {
 
 __device__ Ray create_ray(Camera camera, int u, int v, curandState *local_rand_state) {
     vec3 ray_orig = camera.position;
-    float n_u = (float(u /*+ curand_uniform(local_rand_state)*/) / float(camera.resolution.x)) - 0.5f;
-    float n_v = (float(v /*+ curand_uniform(local_rand_state)*/) / float(camera.resolution.y)) - 0.5f;
+    float n_u = (float(u + curand_uniform(local_rand_state)) / float(camera.resolution.x)) - 0.5f;
+    float n_v = (float(v + curand_uniform(local_rand_state)) / float(camera.resolution.y)) - 0.5f;
     float aspect_ratio = float(camera.resolution.x) / float(camera.resolution.y);
     vec3 camera_right = -cross(camera.direction, camera.up);
     vec3 point = n_u * camera_right * aspect_ratio - n_v * camera.up +
