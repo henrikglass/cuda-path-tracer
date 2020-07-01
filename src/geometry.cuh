@@ -1,8 +1,10 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#define MAX_OCTREE_DEPTH 5
+#define MAX_OCTREE_DEPTH 6
 #define EPSILON 0.00000001f
+#define MAX_RDIR 1000000.0f
+#define AABB_PADDING 0.0001f
 
 #include <string>
 #include <float.h>
@@ -19,9 +21,9 @@ struct Ray {
         recalc_fracs();
     }
     __host__ __device__ void recalc_fracs() {
-        fracs.x = fminf(1.0f / this->direction.x, 1000000.0f); // @Incomplete magic#
-        fracs.y = fminf(1.0f / this->direction.y, 1000000.0f);
-        fracs.z = fminf(1.0f / this->direction.z, 1000000.0f);
+        fracs.x = fminf(1.0f / this->direction.x, MAX_RDIR);
+        fracs.y = fminf(1.0f / this->direction.y, MAX_RDIR);
+        fracs.z = fminf(1.0f / this->direction.z, MAX_RDIR);
     }
     vec3 origin;
     vec3 direction;
@@ -64,8 +66,8 @@ struct Intersection {
 struct AABB {
     AABB() {}
     AABB(vec3 min, vec3 max) {
-        this->min = min - vec3(0.1f, 0.1f, 0.1f);
-        this->max = max + vec3(0.1f, 0.1f, 0.1f);
+        this->min = min - vec3(AABB_PADDING, AABB_PADDING, AABB_PADDING);
+        this->max = max + vec3(AABB_PADDING, AABB_PADDING, AABB_PADDING);
     }
     __host__ void recalculate(Vertex *vertices, int n_vertices);
     __host__ bool contains_triangle(vec3 v0, vec3 v1, vec3 v2);

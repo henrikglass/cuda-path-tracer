@@ -85,23 +85,7 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     c[3] = AABB(vec3(x_min, y_mid, z_mid), vec3(x_mid, y_max, z_max)); // old --> 6
     c[7] = AABB(vec3(x_mid, y_mid, z_mid), vec3(x_max, y_max, z_max)); // old --> 7
 
-    // old way
-    /*for (int i = 0; i < 8; i++) {
-        _case = (c[i].contains_triangle(v0, v1, v2)) ? i : _case;
-    }
 
-    // Unless the math is wrong, there's exactly one possible case (no overridden values)
-    if (_case == -1 || this->depth == MAX_OCTREE_DEPTH) {
-        this->triangle_indices.push_back(triangle_idx);
-        this->n_triangle_indices++;
-    } else {
-        if (this->children[_case] == nullptr) {
-            this->children[_case] = new Octree(c[_case], this->depth + 1);
-        }
-        this->children[_case]->insert_triangle(v0, v1, v2, triangle_idx);
-    }*/
-
-    // new way
     if (this->depth == MAX_OCTREE_DEPTH) {
         // If this is a leaf add triangle
         this->triangle_indices.push_back(triangle_idx);

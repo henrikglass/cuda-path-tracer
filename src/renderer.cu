@@ -116,7 +116,7 @@ void device_render(RenderConfig config) {
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
     
-    //if (!(u == 512 && v == 370) /*&& !(u == 600 && v == 350)*/)
+    //if (!(u == 625 && v == 378) /*&& !(u == 600 && v == 350)*/)
     //    return;
 
     curandState &local_rand_state = config.rand_state[pixel_idx];

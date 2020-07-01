@@ -162,8 +162,8 @@ inline bool Octree::proc_subtree(
     int curr_node;
 
     // not necessary?
-    if ((t1.x < 0.0f) || (t1.y < 0.0f) || (t1.y < 0.0f))
-        return false;
+    //if ((t1.x < 0.0f) || (t1.y < 0.0f) || (t1.y < 0.0f))
+    //    return false;
 
     // if leaf check intersections for triangle in this node
     if (this->depth == MAX_OCTREE_DEPTH) {
@@ -184,13 +184,23 @@ inline bool Octree::proc_subtree(
 
     curr_node = find_first_node(t0, tM);
 
+    /*if (this->depth == MAX_OCTREE_DEPTH -1) {
+        printf("curr_node: %d", curr_node);
+        printf("  curr_node^a: %d \n", a^curr_node);
+        for (int i = 0; i < 8; i++) {
+            printf("%d ", this->children[i] != nullptr);
+        }
+        printf("\n");
+    }*/
     
     //return false;
 
     // do only if child[curr_node^a] != nullptr
     bool hit = false;
     do {
-        //printf("d: %d  -- node: %d\n", this->depth, curr_node^a);
+        /*for (int i = 0; i < this->depth; i++)
+            printf("  ");
+        printf("d: %d  -- node: %d\n", this->depth, curr_node^a);*/
         switch (curr_node) {
         case 0:
             if (this->d_children[a] != nullptr) {
@@ -329,6 +339,7 @@ inline bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Inter
         return hit;
     } else {
         //printf("as octree");
+        //get_closest_intersection
         return this->d_octree->ray_step(
                 this->d_vertices,
                 this->d_triangles, 
