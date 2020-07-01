@@ -58,8 +58,6 @@ inline bool Octree::get_closest_intersection(
  */
 __device__ 
 inline bool Octree::ray_step(
-        Vertex *vertices, 
-        Triangle *triangles, 
         const Ray &ray, 
         Intersection &bestHit,
         Entity *entity
@@ -87,10 +85,6 @@ inline bool Octree::ray_step(
         a |= 0b001; // 1
     }
 
-    //printf("a: %d\n", a);
-    //r.direction = r.direction + EPSILON; 
-    //printf("ray: (%g, %g, %g)\n", r.direction.x, r.direction.z, r.direction.z);
-
     if (a != 0) 
         r.recalc_fracs();
 
@@ -103,13 +97,12 @@ inline bool Octree::ray_step(
     float tmin = fmaxf(fmaxf(tx0, ty0), tz0);
     float tmax = fminf(fminf(tx1, ty1), tz1);
 
-    if ((tmin < tmax) /*&& (tmax > 0.0f)*/) {
+    if ((tmin < tmax) && (tmax > 0.0f)) {
         return proc_subtree(
             a,
             vec3(tx0, ty0, tz0),
             vec3(tx1, ty1, tz1),
-            vertices, triangles, ray, /* original ray(!) */
-            bestHit, entity
+            ray, bestHit, entity
         );
     }
 
@@ -117,29 +110,30 @@ inline bool Octree::ray_step(
 }
 
 __device__
-inline int find_first_node(vec3 t0, vec3 tM) {
+inline unsigned char find_first_node(const vec3 &t0, const vec3 &tM) {
     unsigned char answer = 0;
     if (t0.x > t0.y) {
         if (t0.x > t0.z) { // YZ plane
             if (tM.y < t0.x) answer |= 2;//0b010;
             if (tM.z < t0.x) answer |= 1;//0b001;
-            return (int) answer;
+            return answer;
         }  
-    } else {
-        if (t0.y > t0.z) { // XZ plane
-            if (tM.x < t0.y) answer |= 4;//0b100;
-            if (tM.z < t0.y) answer |= 1;//0b001;
-            return (int) answer;
-        }  
+    } else if (t0.y > t0.z) { // XZ plane
+        if (tM.x < t0.y) answer |= 4;//0b100;
+        if (tM.z < t0.y) answer |= 1;//0b001;
+        return answer;
     } 
     // XY plane
     if (tM.x < t0.z) answer |= 4;//0b100;
     if (tM.y < t0.z) answer |= 2;//0b010;
-    return (int) answer;
+    return answer;
 }
 
 __device__
-inline int next_node(float txm, float tym, float tzm, int x, int y, int z) {
+inline unsigned char next_node(
+        float txm, float tym, float tzm, 
+        unsigned char x, unsigned char y, unsigned char z
+) {
     if (txm < tym) {
         if (txm < tzm) return x; // YZ plane
     } else {
@@ -153,27 +147,24 @@ inline bool Octree::proc_subtree(
         unsigned char a,
         vec3 t0, 
         vec3 t1,
-        Vertex *vertices, 
-        Triangle *triangles, 
         const Ray &ray, 
         Intersection &bestHit,
         Entity *entity
 ) {
-    int curr_node;
+    unsigned char curr_node;
 
-    // not necessary?
-    //if ((t1.x < 0.0f) || (t1.y < 0.0f) || (t1.y < 0.0f))
-    //    return false;
+    if ((t1.x < 0.0f) || (t1.y < 0.0f) || (t1.y < 0.0f))
+        return false;
 
     // if leaf check intersections for triangle in this node
     if (this->depth == MAX_OCTREE_DEPTH) {
         bool hit = false;
         for (int i = 0; i < this->n_triangle_indices; i++) {
             int tri_idx = this->d_triangle_indices[i];
-            Triangle *triangle = &(triangles[tri_idx]);
-            vec3 v0 = vertices[triangle->idx_a].position;
-            vec3 v1 = vertices[triangle->idx_b].position;
-            vec3 v2 = vertices[triangle->idx_c].position;
+            Triangle *triangle = &(entity->d_triangles[tri_idx]);
+            vec3 v0 = entity->d_vertices[triangle->idx_a].position;
+            vec3 v1 = entity->d_vertices[triangle->idx_b].position;
+            vec3 v2 = entity->d_vertices[triangle->idx_c].position;
             hit = intersect_triangle(v0, v1, v2, triangle, entity, bestHit, ray) || hit;
         }
         return hit;
@@ -183,83 +174,32 @@ inline bool Octree::proc_subtree(
     vec3 tM = 0.5f * (t0 + t1);
 
     curr_node = find_first_node(t0, tM);
-
-    /*if (this->depth == MAX_OCTREE_DEPTH -1) {
-        printf("curr_node: %d", curr_node);
-        printf("  curr_node^a: %d \n", a^curr_node);
-        for (int i = 0; i < 8; i++) {
-            printf("%d ", this->children[i] != nullptr);
-        }
-        printf("\n");
-    }*/
-    
-    //return false;
-
-    // do only if child[curr_node^a] != nullptr
     bool hit = false;
     do {
-        /*for (int i = 0; i < this->depth; i++)
-            printf("  ");
-        printf("d: %d  -- node: %d\n", this->depth, curr_node^a);*/
-        switch (curr_node) {
-        case 0:
-            if (this->d_children[a] != nullptr) {
-                hit = this->d_children[a]->proc_subtree(a, vec3(t0.x, t0.y, t0.z), vec3(tM.x, tM.y, tM.z),
-                        vertices, triangles, ray, bestHit, entity) || hit;
+        unsigned int xord = curr_node ^ a;
+        if (this->d_children[xord] != nullptr) {
+            switch (curr_node) {
+                case 0: hit = this->d_children[xord]->proc_subtree(a, vec3(t0.x, t0.y, t0.z), vec3(tM.x, tM.y, tM.z), ray, bestHit, entity) || hit; break;
+                case 1: hit = this->d_children[xord]->proc_subtree(a, vec3(t0.x, t0.y, tM.z), vec3(tM.x, tM.y, t1.z), ray, bestHit, entity) || hit; break;
+                case 2: hit = this->d_children[xord]->proc_subtree(a, vec3(t0.x, tM.y, t0.z), vec3(tM.x, t1.y, tM.z), ray, bestHit, entity) || hit; break;
+                case 3: hit = this->d_children[xord]->proc_subtree(a, vec3(t0.x, tM.y, tM.z), vec3(tM.x, t1.y, t1.z), ray, bestHit, entity) || hit; break;
+                case 4: hit = this->d_children[xord]->proc_subtree(a, vec3(tM.x, t0.y, t0.z), vec3(t1.x, tM.y, tM.z), ray, bestHit, entity) || hit; break;
+                case 5: hit = this->d_children[xord]->proc_subtree(a, vec3(tM.x, t0.y, tM.z), vec3(t1.x, tM.y, t1.z), ray, bestHit, entity) || hit; break;
+                case 6: hit = this->d_children[xord]->proc_subtree(a, vec3(tM.x, tM.y, t0.z), vec3(t1.x, t1.y, tM.z), ray, bestHit, entity) || hit; break;
+                case 7: hit = this->d_children[xord]->proc_subtree(a, vec3(tM.x, tM.y, tM.z), vec3(t1.x, t1.y, t1.z), ray, bestHit, entity) || hit; break;
             }
-            curr_node = next_node(tM.x, tM.y, tM.z, 4, 2, 1);
-            break;
-        case 1:
-            if (this->d_children[1^a] != nullptr) {
-                hit = this->d_children[1^a]->proc_subtree(a, vec3(t0.x, t0.y, tM.z), vec3(tM.x, tM.y, t1.z), 
-                        vertices, triangles, ray, bestHit, entity) || hit;
-            }
-            curr_node = next_node(tM.x, tM.y, t1.z, 5, 3, 8);
-            break;
-        case 2:
-            if (this->d_children[2^a] != nullptr) {
-                hit = this->d_children[2^a]->proc_subtree(a, vec3(t0.x, tM.y, t0.z), vec3(tM.x, t1.y, tM.z), 
-                        vertices, triangles, ray, bestHit, entity) || hit;
-            }
-            curr_node = next_node(tM.x, t1.y, tM.z, 6, 8, 3);
-            break;
-        case 3:
-            if (this->d_children[3^a] != nullptr) {
-                hit = this->d_children[3^a]->proc_subtree(a, vec3(t0.x, tM.y, tM.z), vec3(tM.x, t1.y, t1.z), 
-                        vertices, triangles, ray, bestHit, entity) || hit;
-            }
-            curr_node = next_node(tM.x, t1.y, t1.z, 7, 8, 8);
-            break;
-        case 4:
-            if (this->d_children[4^a] != nullptr) {
-                hit = this->d_children[4^a]->proc_subtree(a, vec3(tM.x, t0.y, t0.z), vec3(t1.x, tM.y, tM.z), 
-                        vertices, triangles, ray, bestHit, entity) || hit;
-            }
-            curr_node = next_node(t1.x, tM.y, tM.z, 8, 6, 5);
-            break;
-        case 5:
-            if (this->d_children[5^a] != nullptr) {
-                hit = this->d_children[5^a]->proc_subtree(a, vec3(tM.x, t0.y, tM.z), vec3(t1.x, tM.y, t1.z), 
-                        vertices, triangles, ray, bestHit, entity) || hit;
-            }
-            curr_node = next_node(t1.x, tM.y, t1.z, 8, 7, 8);
-            break;
-        case 6:
-            if (this->d_children[6^a] != nullptr) {
-                hit = this->d_children[6^a]->proc_subtree(a, vec3(tM.x, tM.y, t0.z), vec3(t1.x, t1.y, tM.z), 
-                        vertices, triangles, ray, bestHit, entity) || hit;
-            }
-            curr_node = next_node(t1.x, t1.y, tM.z, 8, 8, 7);
-            break;
-        case 7:
-            if (this->d_children[7^a] != nullptr) {
-                hit = this->d_children[7^a]->proc_subtree(a, vec3(tM.x, tM.y, tM.z), vec3(t1.x, t1.y, t1.z), 
-                        vertices, triangles, ray, bestHit, entity) || hit;
-            }
-            curr_node = 8;
-            break;
         }
-    } while (curr_node < 8);
+        switch (curr_node) {
+            case 0: curr_node = next_node(tM.x, tM.y, tM.z, 4, 2, 1); break;
+            case 1: curr_node = next_node(tM.x, tM.y, t1.z, 5, 3, 8); break;
+            case 2: curr_node = next_node(tM.x, t1.y, tM.z, 6, 8, 3); break;
+            case 3: curr_node = next_node(tM.x, t1.y, t1.z, 7, 8, 8); break;
+            case 4: curr_node = next_node(t1.x, tM.y, tM.z, 8, 6, 5); break;
+            case 5: curr_node = next_node(t1.x, tM.y, t1.z, 8, 7, 8); break;
+            case 6: curr_node = next_node(t1.x, t1.y, tM.z, 8, 8, 7); break;
+            case 7: curr_node = 8; break;
+        }
+    } while (curr_node < 8 && !hit);
 
     return hit;
 }
@@ -341,8 +281,6 @@ inline bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Inter
         //printf("as octree");
         //get_closest_intersection
         return this->d_octree->ray_step(
-                this->d_vertices,
-                this->d_triangles, 
                 ray, 
                 bestHit, 
                 this

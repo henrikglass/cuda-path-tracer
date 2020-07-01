@@ -71,7 +71,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.camera     = camera;
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
-    config.n_samples  = 10;
+    config.n_samples  = 100;
 
     std::cout << "start render" << std::endl;
     // render on device
@@ -86,7 +86,7 @@ Image render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaPeekAtLastError());
 
     // normalize and gamma correct image
-    //normalize_and_gamma_correct(result_pixels, config.n_samples, 2.2f);
+    normalize_and_gamma_correct(result_pixels, config.n_samples, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -119,7 +119,7 @@ void device_render(RenderConfig config) {
     //if (!(u == 625 && v == 378) /*&& !(u == 600 && v == 350)*/)
     //    return;
 
-    curandState &local_rand_state = config.rand_state[pixel_idx];
+    /*curandState &local_rand_state = config.rand_state[pixel_idx];
     Intersection hit;
     Ray ray = create_ray(config.camera, u, v, &local_rand_state);
     if (!get_closest_intersection_in_scene(
@@ -132,9 +132,9 @@ void device_render(RenderConfig config) {
     }
 
     // normal
-    config.buf[pixel_idx] =  (hit.normal + vec3(1,1,1)) / 2;
+    config.buf[pixel_idx] =  (hit.normal + vec3(1,1,1)) / 2;*/
 
-    /*curandState &local_rand_state = config.rand_state[pixel_idx];
+    curandState &local_rand_state = config.rand_state[pixel_idx];
 
     // color pixel
     vec3 result(0, 0, 0);
@@ -144,7 +144,7 @@ void device_render(RenderConfig config) {
         result = result + color(ray, config.scene, &local_rand_state);
     }
 
-    config.buf[pixel_idx] = config.buf[pixel_idx] + result;*/
+    config.buf[pixel_idx] = config.buf[pixel_idx] + result;
     
 }
 

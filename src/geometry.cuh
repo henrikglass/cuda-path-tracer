@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#define MAX_OCTREE_DEPTH 6
+#define MAX_OCTREE_DEPTH 7
 #define EPSILON 0.00000001f
 #define MAX_RDIR 1000000.0f
 #define AABB_PADDING 0.0001f
@@ -97,8 +97,6 @@ struct Octree {
             Entity *entity
     );
     __device__ bool ray_step(
-            Vertex *vertices, 
-            Triangle *triangles, 
             const Ray &ray, 
             Intersection &bestHit,
             Entity *entity
@@ -107,8 +105,6 @@ struct Octree {
             unsigned char a,
             vec3 t0, 
             vec3 t1,
-            Vertex *vertices, 
-            Triangle *triangles, 
             const Ray &ray, 
             Intersection &bestHit,
             Entity *entity
@@ -124,14 +120,14 @@ struct Octree {
 };
 
 class Entity {
-private:
+public:
 
     // for triangle mesh case:
-    Octree *d_octree      = nullptr;
-    Vertex *vertices      = nullptr;
-    Vertex *d_vertices    = nullptr;
-    Triangle *triangles   = nullptr;
-    Triangle *d_triangles = nullptr;
+    Octree *d_octree = nullptr;
+    Vertex *vertices        = nullptr;
+    Vertex *d_vertices      = nullptr;
+    Triangle *triangles     = nullptr;
+    Triangle *d_triangles   = nullptr;
     size_t n_triangles;
     size_t n_vertices;
     AABB aabb;
@@ -189,7 +185,7 @@ public:
     Material material;
 
     bool on_device = false;
-    Octree *octree        = nullptr;
+    Octree *octree = nullptr;
 
 };
 
