@@ -73,7 +73,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
     //config.n_samples  = 250;
-    config.n_samples  = 63;
+    config.n_samples  = 50;
 
     std::cout << "start render" << std::endl;
     // render on device
@@ -92,7 +92,7 @@ Image render(const Camera &camera, Scene &scene) {
     compound(result_pixels, h_buf, 4);
 
     // normalize and gamma correct image
-    normalize_and_gamma_correct(result_pixels, 2016, 2.2f);
+    normalize_and_gamma_correct(result_pixels, 32*50, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -122,7 +122,6 @@ void device_render(RenderConfig config) {
     int buf_offset = threadIdx.z * (config.camera.resolution.x * config.camera.resolution.y);
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
-
         
     // color pixel
     vec3 result(0, 0, 0);
@@ -138,6 +137,7 @@ void device_render(RenderConfig config) {
 }
 
 __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local_rand_state) {
+    // create perfect (pinhole) ray
     vec3 ray_orig = camera.position;
     float n_u = (float(u + curand_uniform(local_rand_state)) / float(camera.resolution.x)) - 0.5f;
     float n_v = (float(v + curand_uniform(local_rand_state)) / float(camera.resolution.y)) - 0.5f;
@@ -147,7 +147,32 @@ __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local
                  camera.position + camera.direction*camera.focal_length;
     vec3 ray_dir = point - camera.position;
     ray_dir.normalize();
+
+    if (camera.aperture > 0.01f) { // should not be needed but hey
+        // set origin to random point on aperture, adjust ray direction accordingly
+        float r = curand_uniform(local_rand_state) * (camera.aperture / 2);
+        float alpha = curand_uniform(local_rand_state) * 2*PI;
+        float dx = __cosf(alpha) * r;
+        float dy = __sinf(alpha) * r;
+        vec3 orig_offset = dx * camera_right - dy * camera.up; // twist to camera orientation
+        vec3 focal_point = ray_orig + camera.focus_distance * 
+                (1.0f / dot(camera.direction, ray_dir)) * ray_dir;
+        ray_orig = ray_orig + orig_offset;
+        ray_dir = focal_point - ray_orig;
+        ray_dir.normalize();
+    }
+
     return Ray(ray_orig, ray_dir);
+    /*vec3 ray_orig = camera.position;
+    float n_u = (float(u + curand_uniform(local_rand_state)) / float(camera.resolution.x)) - 0.5f;
+    float n_v = (float(v + curand_uniform(local_rand_state)) / float(camera.resolution.y)) - 0.5f;
+    float aspect_ratio = float(camera.resolution.x) / float(camera.resolution.y);
+    vec3 camera_right = -cross(camera.direction, camera.up);
+    vec3 point = n_u * camera_right * aspect_ratio - n_v * camera.up +
+                 camera.position + camera.direction*camera.focal_length;
+    vec3 ray_dir = point - camera.position;
+    ray_dir.normalize();
+    return Ray(ray_orig, ray_dir);*/
 }
 
 __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
@@ -215,7 +240,7 @@ __device__ mat3 get_tangent_space(const vec3 &normal) {
 void compound(std::vector<vec3> &out_image, const std::vector<vec3> &in_buf, int n_split_buffers) {
     std::cout << "capacity: " << out_image.capacity() << std::endl;
     size_t single_buffer_size = out_image.capacity();
-    for (int i = 0; i < single_buffer_size; i++) {
+    for (size_t i = 0; i < single_buffer_size; i++) {
         vec3 sum(0);
         for(int j = 0; j < n_split_buffers; j++) {
             sum = sum + in_buf[i + j * single_buffer_size];
@@ -229,7 +254,7 @@ void normalize_and_gamma_correct(
         int n_samples_per_pixel, 
         float gamma
 ) {
-    for (int i = 0; i < buf.size(); i++) {
+    for (size_t i = 0; i < buf.size(); i++) {
         buf[i] = buf[i] / n_samples_per_pixel;
         buf[i].x = pow(buf[i].x, 1.0f / gamma);
         buf[i].y = pow(buf[i].y, 1.0f / gamma);

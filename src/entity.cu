@@ -70,18 +70,18 @@ Entity::Entity(const std::string &path, const Material &material) {
     }
 
     // load triangles
-    tinyobj::shape_t shape = shapes[0];
+    tinyobj::shape_t _shape = shapes[0];
     index_offset = 0;
     for (size_t f = 0; f < this->n_triangles; f++) {
-        if ((int)shape.mesh.num_face_vertices[f] != 3) {
+        if ((int)_shape.mesh.num_face_vertices[f] != 3) {
             std::cerr << "OBJ file faces must be triangles" << std::endl;
             exit(1);
         }
 
         this->triangles[f] = Triangle(
-                shape.mesh.indices[index_offset + 0].vertex_index,
-                shape.mesh.indices[index_offset + 1].vertex_index,
-                shape.mesh.indices[index_offset + 2].vertex_index
+                _shape.mesh.indices[index_offset + 0].vertex_index,
+                _shape.mesh.indices[index_offset + 1].vertex_index,
+                _shape.mesh.indices[index_offset + 2].vertex_index
         );
 
         if (no_normals) {

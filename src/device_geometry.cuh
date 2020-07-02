@@ -318,6 +318,8 @@ inline bool intersect_triangle(
     e1 = v1 - v0;
     e2 = v2 - v0;
 
+    // @Incomplete Might want to to back-face culling in the future.
+
     pvec = cross(ray.direction, e2);
     det = dot(e1, pvec);
     if (fabs(det) < EPSILON) 

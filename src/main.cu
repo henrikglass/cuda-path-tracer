@@ -94,7 +94,10 @@ int main(void) {
     //ivec2 res = ivec2(3860, 2160);
     //ivec2 res = ivec2(320, 180);
     //Camera camera(vec3(30, 26.5695f, -100), vec3(0, 0, 1).normalized(), res, 1.2f);
-    Camera camera(vec3(127.5f, 27.5f, -100), vec3(-0.5, 0, 1).normalized(), res, 1.2f);
+    Camera camera(vec3(127.5f, 27.5f, -100), vec3(-0.5, 0, 1).normalized(), res);
+    camera.focal_length = 1.2f;
+    camera.aperture = 6;
+    camera.focus_distance = 135;
     //Camera camera(vec3(-75.5f, 27.5f, -100), vec3(0.5, 0, 1).normalized(), res, 1.2f);
 
     // render

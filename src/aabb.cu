@@ -1,20 +1,20 @@
 #include "geometry.cuh"
 
 void AABB::recalculate(Vertex *vertices, int n_vertices) {
-    vec3 min(FLT_MAX, FLT_MAX, FLT_MAX);
-    vec3 max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    vec3 _min(FLT_MAX, FLT_MAX, FLT_MAX);
+    vec3 _max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     for (int i = 0; i < n_vertices; i++) {
         vec3 position = vertices[i].position;
-        min.x = (position.x < min.x) ? position.x : min.x;
-        min.y = (position.y < min.y) ? position.y : min.y;
-        min.z = (position.z < min.z) ? position.z : min.z;
-        max.x = (position.x > max.x) ? position.x : max.x;
-        max.y = (position.y > max.y) ? position.y : max.y;
-        max.z = (position.z > max.z) ? position.z : max.z;
+        _min.x = (position.x < _min.x) ? position.x : _min.x;
+        _min.y = (position.y < _min.y) ? position.y : _min.y;
+        _min.z = (position.z < _min.z) ? position.z : _min.z;
+        _max.x = (position.x > _max.x) ? position.x : _max.x;
+        _max.y = (position.y > _max.y) ? position.y : _max.y;
+        _max.z = (position.z > _max.z) ? position.z : _max.z;
     }
     
-    this->min = min - vec3(AABB_PADDING, AABB_PADDING, AABB_PADDING); // padding
-    this->max = max + vec3(AABB_PADDING, AABB_PADDING, AABB_PADDING);
+    this->min = _min - vec3(AABB_PADDING, AABB_PADDING, AABB_PADDING); // padding
+    this->max = _max + vec3(AABB_PADDING, AABB_PADDING, AABB_PADDING);
 }
 
 __host__ 

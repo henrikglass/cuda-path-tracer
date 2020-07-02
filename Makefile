@@ -1,6 +1,9 @@
 # CUDA directory:
 CUDA_ROOT_DIR = /usr/local/cuda
 
+# warnings								#warns in includes										#warns in fatbins(?) 
+WARNINGS    = -Wall,-pedantic,-Wextra,-Wno-unused-function,-Wshadow,-Weffc++,-Wstrict-aliasing,-Wno-overlength-strings
+
 # CC compiler options:
 CC			= g++ #clang
 CC_FLAGS	= -std=c++11 -O2 -Wall -pedantic #-p -pg
@@ -8,7 +11,7 @@ CC_LIBS		= -Iexternal
 
 # NVCC compiler options:
 NVCC 		= nvcc
-NVCC_FLAGS 	= -ccbin clang++-8 -use_fast_math -Xcompiler -O2 -dc -arch=sm_75 #-Xcompiler -g #-gencode arch=compute_75,code=sm_75 -lineinfo #-G#-arch compute_75 #-G -lineinfo -Xcompiler -Wall -Xcompiler -Wextra -Xcompiler -p -Xcompiler -pg
+NVCC_FLAGS 	= -ccbin clang++-8 -use_fast_math -Xcompiler -O2 -Xcompiler $(WARNINGS) -dc -arch=sm_75 #-Xcompiler -g #-gencode arch=compute_75,code=sm_75 -lineinfo #-G#-arch compute_75 #-G -lineinfo -Xcompiler -Wall -Xcompiler -Wextra -Xcompiler -p -Xcompiler -pg
 NVCC_LIBS 	= -Iexternal
 
 # Linker options
@@ -18,7 +21,7 @@ LINKER_LIBS	 =
 
 # cuda stuff
 CUDA_LIB_DIR 	= -L$(CUDA_ROOT_DIR)/lib64
-CUDA_INC_DIR 	= -I$(CUDA_ROOT_DIR)/include
+CUDA_INC_DIR 	= -isystem $(CUDA_ROOT_DIR)/include
 CUDA_LINK_LIBS	= #-lcudart
 
 TARGET    = cudaPathTracer

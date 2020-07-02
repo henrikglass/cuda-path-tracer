@@ -24,7 +24,7 @@ void Octree::copy_to_device() {
         if (this->children[i] == nullptr)
             continue;
         this->children[i]->copy_to_device();
-        long size = sizeof(Octree);
+        size = sizeof(Octree);
         gpuErrchk(cudaMalloc(&(this->d_children[i]), size));
         gpuErrchk(cudaMemcpy(this->d_children[i], this->children[i], size, cudaMemcpyHostToDevice));
     }
