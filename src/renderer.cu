@@ -39,11 +39,11 @@ Image render(const Camera &camera, Scene &scene) {
            devID, props.name, props.major, props.minor);
 
     // Decide on tile size, # of threads and # of blocks
-    int tile_size = 8; // 16x16 pixels
+    int tile_size = 4; // 16x16 pixels
     //int samples_per_pixel = 10;
     dim3 blocks(
-            camera.resolution.x / tile_size + 1, 
-            camera.resolution.y / tile_size + 1
+            camera.resolution.x / tile_size, 
+            camera.resolution.y / tile_size
     );
     dim3 threads(tile_size, tile_size);
 
@@ -62,7 +62,7 @@ Image render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaDeviceSynchronize());
 
     // add z dimension for # of samples per pixel
-    //blocks.z = samples_per_pixel;
+    blocks.z = 8;
 
     // setup RenderConfig
     RenderConfig config;
@@ -71,7 +71,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.camera     = camera;
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
-    config.n_samples  = 2000;
+    config.n_samples  = 250;
 
     std::cout << "start render" << std::endl;
     // render on device
@@ -86,7 +86,7 @@ Image render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaPeekAtLastError());
 
     // normalize and gamma correct image
-    normalize_and_gamma_correct(result_pixels, config.n_samples, 2.2f);
+    normalize_and_gamma_correct(result_pixels, 2000, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -115,32 +115,14 @@ void device_render(RenderConfig config) {
     int pixel_idx = v * config.camera.resolution.x +  u;
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
-    
-    //if (!(u == 625 && v == 378) /*&& !(u == 600 && v == 350)*/)
-    //    return;
 
-    /*curandState &local_rand_state = config.rand_state[pixel_idx];
-    Intersection hit;
-    Ray ray = create_ray(config.camera, u, v, &local_rand_state);
-    if (!get_closest_intersection_in_scene(
-            ray, 
-            config.scene->d_entities, 
-            config.scene->n_entities, 
-            hit
-    )) {
-        return;
-    }
-
-    // normal
-    config.buf[pixel_idx] =  (hit.normal + vec3(1,1,1)) / 2;*/
-
-    curandState &local_rand_state = config.rand_state[pixel_idx];
-
+        
     // color pixel
     vec3 result(0, 0, 0);
+    curandState &local_rand_state = config.rand_state[pixel_idx];
     int ns = config.n_samples; // 1000
     for (int i = 0; i < ns; i++) {
-        Ray ray = create_ray(config.camera, u, v, &local_rand_state);
+        Ray ray = create_camera_ray(config.camera, u, v, &local_rand_state);
         result = result + color(ray, config.scene, &local_rand_state);
     }
 
@@ -148,7 +130,7 @@ void device_render(RenderConfig config) {
     
 }
 
-__device__ Ray create_ray(Camera camera, int u, int v, curandState *local_rand_state) {
+__device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local_rand_state) {
     vec3 ray_orig = camera.position;
     float n_u = (float(u + curand_uniform(local_rand_state)) / float(camera.resolution.x)) - 0.5f;
     float n_v = (float(v + curand_uniform(local_rand_state)) / float(camera.resolution.y)) - 0.5f;

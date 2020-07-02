@@ -29,7 +29,7 @@ __device__ vec3 reflect(const vec3 &dir, const vec3 &normal);
 __device__ vec3 sample_hemisphere(const vec3 &dir, float alpha, curandState *local_rand_state);
 __device__ mat3 get_tangent_space(const vec3 &normal);
 __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state);
-__device__ Ray create_ray(Camera camera, int u, int v, curandState *local_rand_state);
+__device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local_rand_state);
 
 // kernels
 __global__
