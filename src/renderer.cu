@@ -15,7 +15,7 @@
 Image render(const Camera &camera, Scene &scene) {
     // Allocate output image buffer on device
     int n_pixels = camera.resolution.x * camera.resolution.y;
-    int buf_size = n_pixels * sizeof(vec3);
+    int buf_size = 4 * n_pixels * sizeof(vec3);
     vec3 *buf;
     gpuErrchk(cudaMalloc(&buf, buf_size));    
 
@@ -63,6 +63,7 @@ Image render(const Camera &camera, Scene &scene) {
 
     // add z dimension for # of samples per pixel
     blocks.z = 8;
+    threads.z = 4;
 
     // setup RenderConfig
     RenderConfig config;
@@ -71,7 +72,8 @@ Image render(const Camera &camera, Scene &scene) {
     config.camera     = camera;
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
-    config.n_samples  = 250;
+    //config.n_samples  = 250;
+    config.n_samples  = 63;
 
     std::cout << "start render" << std::endl;
     // render on device
@@ -82,11 +84,15 @@ Image render(const Camera &camera, Scene &scene) {
 
     // copy data back to host
     std::vector<vec3> result_pixels(n_pixels);
-    cudaMemcpy(&(result_pixels[0]), buf, buf_size, cudaMemcpyDeviceToHost);
+    std::vector<vec3> h_buf(4*n_pixels);
+    cudaMemcpy(&(h_buf[0]), buf, buf_size, cudaMemcpyDeviceToHost);
     gpuErrchk(cudaPeekAtLastError());
 
+    // compound split buffers into single image
+    compound(result_pixels, h_buf, 4);
+
     // normalize and gamma correct image
-    normalize_and_gamma_correct(result_pixels, 2000, 2.2f);
+    normalize_and_gamma_correct(result_pixels, 2016, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -113,6 +119,7 @@ void device_render(RenderConfig config) {
     int u = blockIdx.x * blockDim.x + threadIdx.x;
     int v = blockIdx.y * blockDim.y + threadIdx.y;
     int pixel_idx = v * config.camera.resolution.x +  u;
+    int buf_offset = threadIdx.z * (config.camera.resolution.x * config.camera.resolution.y);
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
 
@@ -126,7 +133,7 @@ void device_render(RenderConfig config) {
         result = result + color(ray, config.scene, &local_rand_state);
     }
 
-    config.buf[pixel_idx] = config.buf[pixel_idx] + result;
+    config.buf[pixel_idx + buf_offset] = config.buf[pixel_idx + buf_offset] + result;
     
 }
 
@@ -203,6 +210,18 @@ __device__ mat3 get_tangent_space(const vec3 &normal) {
     vec3 tangent = cross(normal, helper).normalized();
     vec3 binormal = cross(normal, tangent).normalized();
     return mat3(tangent, binormal, normal);
+}
+
+void compound(std::vector<vec3> &out_image, const std::vector<vec3> &in_buf, int n_split_buffers) {
+    std::cout << "capacity: " << out_image.capacity() << std::endl;
+    size_t single_buffer_size = out_image.capacity();
+    for (int i = 0; i < single_buffer_size; i++) {
+        vec3 sum(0);
+        for(int j = 0; j < n_split_buffers; j++) {
+            sum = sum + in_buf[i + j * single_buffer_size];
+        }
+        out_image[i] = sum;
+    }
 }
 
 void normalize_and_gamma_correct(

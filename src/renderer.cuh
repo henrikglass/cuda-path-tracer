@@ -22,6 +22,7 @@ struct RenderConfig {
 
 // host
 Image render(const Camera &camera, Scene &scene);
+void compound(std::vector<vec3> &out_image, const std::vector<vec3> &in_buf, int n_split_buffers);
 void normalize_and_gamma_correct(std::vector<vec3> &buf, int n_samples_per_pixel, float gamma);
 
 // device
