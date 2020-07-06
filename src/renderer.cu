@@ -73,7 +73,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
     //config.n_samples  = 250;
-    config.n_samples  = 50;
+    config.n_samples  = 5;
     
     std::cout << "start render" << std::endl;
     // render on device
@@ -92,7 +92,7 @@ Image render(const Camera &camera, Scene &scene) {
     compound(result_pixels, h_buf, 4);
 
     // normalize and gamma correct image
-    tonemap(result_pixels, 32*50, 2.2f);
+    tonemap(result_pixels, 32*5, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -263,7 +263,7 @@ void tonemap(
 ) {
     for (size_t i = 0; i < buf.size(); i++) {
         buf[i] = buf[i] / n_samples_per_pixel;
-        buf[i] = ACESFilm(buf[i]);
+        //buf[i] = ACESFilm(buf[i]);
         buf[i].x = pow(buf[i].x, 1.0f / gamma);
         buf[i].y = pow(buf[i].y, 1.0f / gamma);
         buf[i].z = pow(buf[i].z, 1.0f / gamma);

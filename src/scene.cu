@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "scene.cuh"
 #include "util.cuh"
 
@@ -28,6 +30,11 @@ void Scene::set_hdri_contrast(float contrast) {
 
 void Scene::use_hdri_smoothing(bool b) {
     this->use_smooth_hdri = b;
+}
+
+void Scene::rotate_hdri(float amount) {
+    assert(amount >= 0.0f);
+    this->hdri_rot_offset = fmod(amount, 1.0f);
 }
 
 void Scene::add_entity(Entity *entity) {

@@ -10,6 +10,7 @@ private:
     HDRLoaderResult hdri;
     float hdri_exposure = 1.0f;
     float hdri_contrast = 1.0f;
+    float hdri_rot_offset = 0.0f;
     bool on_device = false;
     bool has_hdri = false;
     bool use_smooth_hdri = false;
@@ -22,6 +23,7 @@ public:
     void set_hdri(const std::string &path);
     void set_hdri_exposure(float exposure);
     void set_hdri_contrast(float contrast);
+    void rotate_hdri(float amount);
     void add_entity(Entity *entity);
     void copy_to_device();
     void free_from_device();
@@ -38,6 +40,9 @@ public:
         vec3 v_p = vec3(v.x, 0, v.z).normalized();
         x_c = ((acosf(dot(v_p, e_z)) * (signbit(v_p.x) ?  -1 : 1)) / (2.0f * 3.14159265f)) + 0.5f;
         y_c = fminf(1.0f - ((dot(v, e_y) + 1.0f) / 2.0f), 0.99f); // No, you can't look at the ground. 
+        // apply hdri rotation
+        x_c += this->hdri_rot_offset;
+        x_c = fmodf(x_c, 1.0f);
         if (!this->use_smooth_hdri) {
             // sample closest pixel
             x_i = x_c * this->hdri.width;

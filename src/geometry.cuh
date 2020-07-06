@@ -1,8 +1,8 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#define MAX_OCTREE_DEPTH 7
-#define EPSILON 0.00000001f
+#define MAX_OCTREE_DEPTH 6
+#define EPSILON 0.000000001f
 #define MAX_RDIR 1000000.0f
 #define AABB_PADDING 0.0001f
 
