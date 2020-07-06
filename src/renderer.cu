@@ -150,7 +150,7 @@ __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local
 
     if (camera.aperture > 0.01f) { // should not be needed but hey
         // set origin to random point on aperture, adjust ray direction accordingly
-        float r = curand_uniform(local_rand_state) * (camera.aperture / 2);
+        float r = __fsqrt_rn(curand_uniform(local_rand_state)) * (camera.aperture / 2);
         float alpha = curand_uniform(local_rand_state) * 2*PI;
         float dx = __cosf(alpha) * r;
         float dy = __sinf(alpha) * r;
@@ -173,7 +173,7 @@ __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
         if (get_closest_intersection_in_scene(ray, scene->d_entities, scene->n_entities, hit)) {
             Material m = hit.entity->material;
             vec3 specular = m.specular;
-            vec3 albedo = min(vec3(1.0f, 1.0f, 1.0f) - m.specular, m.albedo);
+            vec3 albedo = min(vec3(1.0f, 1.0f, 1.0f) - m.specular, m.sample_albedo(hit.u, hit.v));
             float spec_chance = dot(specular, vec3(1.0f/3.0f, 1.0f/3.0f, 1.0f/3.0f));
             float diff_chance = dot(albedo, vec3(1.0f/3.0f, 1.0f/3.0f, 1.0f/3.0f));
             float sum = spec_chance + diff_chance;
@@ -263,7 +263,7 @@ void tonemap(
 ) {
     for (size_t i = 0; i < buf.size(); i++) {
         buf[i] = buf[i] / n_samples_per_pixel;
-        //buf[i] = ACESFilm(buf[i]);
+        buf[i] = ACESFilm(buf[i]);
         buf[i].x = pow(buf[i].x, 1.0f / gamma);
         buf[i].y = pow(buf[i].y, 1.0f / gamma);
         buf[i].z = pow(buf[i].z, 1.0f / gamma);
