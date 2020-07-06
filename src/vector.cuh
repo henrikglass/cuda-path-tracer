@@ -114,6 +114,11 @@ __host__ __device__ inline vec3 operator*(const vec3 &a, const vec3 &b) {
     return vec3(a.x * b.x, a.y * b.y, a.z * b.z);
 }
 
+// Hadamard division (?) (element wise)
+__host__ __device__ inline vec3 operator/(const vec3 &a, const vec3 &b) {
+    return vec3(a.x / b.x, a.y / b.y, a.z / b.z);
+}
+
 // scalar operations
 __device__ __host__ inline vec2 operator*(float s, const vec2& v) {
     return vec2(s * v.x, s * v.y);

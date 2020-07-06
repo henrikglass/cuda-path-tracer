@@ -60,7 +60,7 @@ Image render(const Camera &camera, Scene &scene) {
     render_init<<<blocks, threads>>>(camera, d_rand_state);
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
-
+    
     // add z dimension for # of samples per pixel
     blocks.z = 8;
     threads.z = 4;
@@ -74,14 +74,14 @@ Image render(const Camera &camera, Scene &scene) {
     config.rand_state = d_rand_state;
     //config.n_samples  = 250;
     config.n_samples  = 50;
-
+    
     std::cout << "start render" << std::endl;
     // render on device
     device_render<<<blocks, threads>>>(config);
     gpuErrchk(cudaPeekAtLastError());
     cudaDeviceSynchronize();
     gpuErrchk(cudaPeekAtLastError());
-
+    
     // copy data back to host
     std::vector<vec3> result_pixels(n_pixels);
     std::vector<vec3> h_buf(4*n_pixels);
@@ -92,7 +92,7 @@ Image render(const Camera &camera, Scene &scene) {
     compound(result_pixels, h_buf, 4);
 
     // normalize and gamma correct image
-    normalize_and_gamma_correct(result_pixels, 32*50, 2.2f);
+    tonemap(result_pixels, 32*50, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -163,16 +163,6 @@ __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local
     }
 
     return Ray(ray_orig, ray_dir);
-    /*vec3 ray_orig = camera.position;
-    float n_u = (float(u + curand_uniform(local_rand_state)) / float(camera.resolution.x)) - 0.5f;
-    float n_v = (float(v + curand_uniform(local_rand_state)) / float(camera.resolution.y)) - 0.5f;
-    float aspect_ratio = float(camera.resolution.x) / float(camera.resolution.y);
-    vec3 camera_right = -cross(camera.direction, camera.up);
-    vec3 point = n_u * camera_right * aspect_ratio - n_v * camera.up +
-                 camera.position + camera.direction*camera.focal_length;
-    vec3 ray_dir = point - camera.position;
-    ray_dir.normalize();
-    return Ray(ray_orig, ray_dir);*/
 }
 
 __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
@@ -249,13 +239,31 @@ void compound(std::vector<vec3> &out_image, const std::vector<vec3> &in_buf, int
     }
 }
 
-void normalize_and_gamma_correct(
+/*
+ * From: https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+ */
+vec3 ACESFilm(vec3 x)
+{
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    vec3 res = (x*(a*x+b))/(x*(c*x+d)+e);
+    res.x = max(0.0f, min(1.0f, res.x));
+    res.y = max(0.0f, min(1.0f, res.y));
+    res.z = max(0.0f, min(1.0f, res.z));
+    return res;
+}
+
+void tonemap(
         std::vector<vec3> &buf, 
         int n_samples_per_pixel, 
         float gamma
 ) {
     for (size_t i = 0; i < buf.size(); i++) {
         buf[i] = buf[i] / n_samples_per_pixel;
+        buf[i] = ACESFilm(buf[i]);
         buf[i].x = pow(buf[i].x, 1.0f / gamma);
         buf[i].y = pow(buf[i].y, 1.0f / gamma);
         buf[i].z = pow(buf[i].z, 1.0f / gamma);
