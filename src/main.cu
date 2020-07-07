@@ -46,7 +46,8 @@ int main(void) {
     //camera.focus_distance = 85;
     Camera camera(vec3(40.5f, 30.5f, -50), vec3(-0.5, 0, 1).normalized(), res);
     camera.focal_length = 2.5f;
-    camera.aperture = 5;
+    //camera.focal_length = 1.0f;
+    camera.aperture = 2;
     camera.focus_distance = 85;
 
     // render

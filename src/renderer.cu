@@ -73,7 +73,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
     //config.n_samples  = 250;
-    config.n_samples  = 5;
+    config.n_samples  = 50;
     
     std::cout << "start render" << std::endl;
     // render on device
@@ -92,7 +92,8 @@ Image render(const Camera &camera, Scene &scene) {
     compound(result_pixels, h_buf, 4);
 
     // normalize and gamma correct image
-    tonemap(result_pixels, 32*5, 2.2f);
+    //tonemap(result_pixels, 32, 2.2f);
+    tonemap(result_pixels, 32*50, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -122,7 +123,7 @@ void device_render(RenderConfig config) {
     int buf_offset = threadIdx.z * (config.camera.resolution.x * config.camera.resolution.y);
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
-        
+
     // color pixel
     vec3 result(0, 0, 0);
     curandState &local_rand_state = config.rand_state[pixel_idx];
@@ -133,7 +134,6 @@ void device_render(RenderConfig config) {
     }
 
     config.buf[pixel_idx + buf_offset] = config.buf[pixel_idx + buf_offset] + result;
-    
 }
 
 __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local_rand_state) {

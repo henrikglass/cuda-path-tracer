@@ -91,16 +91,21 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
         this->n_triangle_indices++;
     } else {
         // Else add to children
+        bool passed = false;
         for (int i = 0; i < 8; i++) {
             if (!c[i].intersects_triangle(v0, v1, v2))
                 continue;
 
+            passed = true;
             if (this->children[i] == nullptr) {
                 this->children[i] = new Octree(c[i], this->depth + 1);
             }
 
             this->children[i]->insert_triangle(v0, v1, v2, triangle_idx);
         }
+
+        if(!passed)
+            std::cout << "Miss triangle!" << std::endl;
     }
 }
 
