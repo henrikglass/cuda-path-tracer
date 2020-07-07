@@ -11,10 +11,12 @@ int main(void) {
     Material m_ball(vec3(0.8f,0.8f,0.8f), vec3(0.5f), 0, 0.0f, false);
     Material m_light(vec3(1,1,1), vec3(0.0f), 10, 0, false);
     Material m_default;
+    Material m_hc;
+    m_hc.set_albedo_map("examples/hcandersen/textures/diff.jpg");
 
     // entities
-    Entity floor("examples/cornellbox/floor.obj", m_lg);
-    Entity hcandersen("examples/hcandersen/source/80k.obj", m_default);
+    Entity floor("examples/cornellbox/floor.obj", &m_default);
+    Entity hcandersen("examples/hcandersen/source/80k.obj", &m_hc);
 
     // transforms
     floor.scale(100.1f);

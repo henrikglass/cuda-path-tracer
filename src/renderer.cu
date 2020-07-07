@@ -73,7 +73,7 @@ Image render(const Camera &camera, Scene &scene) {
     config.scene      = d_scene;
     config.rand_state = d_rand_state;
     //config.n_samples  = 250;
-    config.n_samples  = 50;
+    config.n_samples  = 100;
     
     std::cout << "start render" << std::endl;
     // render on device
@@ -93,7 +93,7 @@ Image render(const Camera &camera, Scene &scene) {
 
     // normalize and gamma correct image
     //tonemap(result_pixels, 32, 2.2f);
-    tonemap(result_pixels, 32*50, 2.2f);
+    tonemap(result_pixels, 32*100, 2.2f);
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;
@@ -123,6 +123,9 @@ void device_render(RenderConfig config) {
     int buf_offset = threadIdx.z * (config.camera.resolution.x * config.camera.resolution.y);
     if ((u >= config.camera.resolution.x) || (v >= config.camera.resolution.y))
         return;
+
+    //if(!(u == 372 && v == 233))
+    //    return;
 
     // color pixel
     vec3 result(0, 0, 0);
@@ -171,9 +174,9 @@ __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
     for (int i = 0; i < 6; i++) {
         Intersection hit;
         if (get_closest_intersection_in_scene(ray, scene->d_entities, scene->n_entities, hit)) {
-            Material m = hit.entity->material;
-            vec3 specular = m.specular;
-            vec3 albedo = min(vec3(1.0f, 1.0f, 1.0f) - m.specular, m.sample_albedo(hit.u, hit.v));
+            Material *m = hit.entity->d_material;
+            vec3 specular = m->specular;
+            vec3 albedo = min(vec3(1.0f, 1.0f, 1.0f) - m->specular, m->sample_albedo(hit.u, hit.v));
             float spec_chance = dot(specular, vec3(1.0f/3.0f, 1.0f/3.0f, 1.0f/3.0f));
             float diff_chance = dot(albedo, vec3(1.0f/3.0f, 1.0f/3.0f, 1.0f/3.0f));
             float sum = spec_chance + diff_chance;
@@ -183,7 +186,7 @@ __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
             float roulette = curand_uniform(local_rand_state);
             if (roulette < spec_chance) {
                 // specular reflection
-                float alpha   = __powf(1000.0f, m.smoothness * m.smoothness);
+                float alpha   = __powf(1000.0f, m->smoothness * m->smoothness);
                 ray.origin    = hit.position + hit.normal * 0.001f;
                 ray.direction = sample_hemisphere(reflect(ray.direction, hit.normal), alpha, local_rand_state);
                 ray.recalc_fracs();
@@ -191,7 +194,7 @@ __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
                 attenuation   = attenuation * (1.0f / spec_chance) * specular * f * dot(hit.normal, ray.direction);
             } else {
                 // diffuse reflection
-                result        = result + m.emission * m.albedo * attenuation;
+                result        = result + m->emission * m->albedo * attenuation;
                 ray.origin    = hit.position + hit.normal * 0.001f;
                 ray.direction = sample_hemisphere(hit.normal, 1.0f, local_rand_state);
                 ray.recalc_fracs();

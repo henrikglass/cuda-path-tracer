@@ -7,7 +7,7 @@
 /*
  * Triangle mesh.
  */
-Entity::Entity(const std::string &path, const Material &material) {
+Entity::Entity(const std::string &path, Material *material) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -29,12 +29,15 @@ Entity::Entity(const std::string &path, const Material &material) {
     }
 
     bool no_normals = (attrib.normals.size() / 3) == 0;
+    bool has_uv = attrib.texcoords.size() != 0;
 
     // allocate space
     this->n_vertices  = attrib.vertices.size() / 3;
     this->n_triangles = shapes[0].mesh.num_face_vertices.size();
+    this->n_uvs       = attrib.texcoords.size() / 2;
     this->vertices  = new Vertex[this->n_vertices];
     this->triangles = new Triangle[this->n_triangles];
+    if (has_uv) this->uvs = new vec2[this->n_uvs];
     
     // For AABB
     vec3 min(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -49,6 +52,7 @@ Entity::Entity(const std::string &path, const Material &material) {
                 (float) attrib.vertices[index_offset + 2]
         );
 
+        // @Incomplete this will not work correctly
         vec3 normal(0.0f, 0.0f, 0.0f);
         if(!no_normals) {
             normal.x = attrib.normals[index_offset + 0];
@@ -66,7 +70,20 @@ Entity::Entity(const std::string &path, const Material &material) {
         max.z = (position.z > max.z) ? position.z : max.z;
 
         this->vertices[v] = Vertex(position, normal);
+
         index_offset += 3;
+    }
+
+    // load texture coordinates
+    if (has_uv) {
+        index_offset = 0;
+        for (size_t vt = 0; vt < this->n_uvs; vt++) {
+            this->uvs[vt] = vec2(
+                    (float) attrib.texcoords[index_offset + 0],
+                    (float) attrib.texcoords[index_offset + 1]
+            );
+            index_offset += 2;
+        }
     }
 
     // load triangles
@@ -81,7 +98,10 @@ Entity::Entity(const std::string &path, const Material &material) {
         this->triangles[f] = Triangle(
                 _shape.mesh.indices[index_offset + 0].vertex_index,
                 _shape.mesh.indices[index_offset + 1].vertex_index,
-                _shape.mesh.indices[index_offset + 2].vertex_index
+                _shape.mesh.indices[index_offset + 2].vertex_index,
+                _shape.mesh.indices[index_offset + 0].texcoord_index,
+                _shape.mesh.indices[index_offset + 1].texcoord_index,
+                _shape.mesh.indices[index_offset + 2].texcoord_index
         );
 
         if (no_normals) {
@@ -127,7 +147,7 @@ Entity::Entity(const std::string &path, const Material &material) {
 /*
  * Sphere.
  */
-Entity::Entity(const vec3 &center, float radius, const Material &material) {
+Entity::Entity(const vec3 &center, float radius, Material *material) {
     this->shape     = SPHERE;
     this->center    = center;
     this->radius    = radius;
@@ -224,6 +244,12 @@ void Entity::rotate(vec3 rot) {
 /************************************************************************************/
 
 void Entity::copy_to_device() {
+    // copy material to device
+    this->material->copy_to_device(); // does nothing if material already copied. Not an issue.
+    gpuErrchk(cudaMalloc(&this->d_material, sizeof(Material)));
+    cudaMemcpy(this->d_material, this->material, sizeof(Material), cudaMemcpyHostToDevice);
+    gpuErrchk(cudaPeekAtLastError());
+
     if (this->shape == SPHERE)
         return;
 
@@ -240,6 +266,14 @@ void Entity::copy_to_device() {
         cudaMemcpy(this->d_triangles, this->triangles, triangles_size, cudaMemcpyHostToDevice);
         gpuErrchk(cudaPeekAtLastError());
 
+        // copy uvs if they exist
+        if (this->uvs != nullptr) {
+            long uvs_size = this->n_uvs * sizeof(vec2);
+            gpuErrchk(cudaMalloc(&this->d_uvs, uvs_size));
+            cudaMemcpy(this->d_uvs, this->uvs, uvs_size, cudaMemcpyHostToDevice);
+            gpuErrchk(cudaPeekAtLastError());
+        }
+
         // copy octree
         // TODO nullcheck for entities that don't have octrees
         if (this->octree != nullptr) {
@@ -254,6 +288,12 @@ void Entity::copy_to_device() {
 }
 
 void Entity::free_from_device() {
+    // free material
+    if (this->d_material != nullptr) {
+        this->material->free_from_device();
+        gpuErrchk(cudaFree(this->d_material));
+    }
+
     if (this->shape == SPHERE)
         return;
 
@@ -269,6 +309,10 @@ void Entity::free_from_device() {
 
     if (this->d_triangles != nullptr) {
         gpuErrchk(cudaFree(this->d_triangles));
+    }
+
+    if (this->d_uvs != nullptr) {
+        gpuErrchk(cudaFree(this->d_uvs));
     }
 
     this->on_device = false;
@@ -295,4 +339,6 @@ Entity::~Entity(){
     if (this->triangles != nullptr) {
         delete[] this->triangles;
     }
+
+    // don't delete material as it's not guaranteed to be unique to us.
 }

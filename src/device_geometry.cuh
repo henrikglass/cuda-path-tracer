@@ -217,15 +217,36 @@ inline bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, 
     // if hit entity has smooth_shading enabled, adjust the normal
     Triangle *tr = is.triangle;
     Entity *e = is.entity;
-    if (is_hit && tr != nullptr && e->material.smooth_shading) {
+    if (is_hit && tr != nullptr) {
         float u = is.u;
         float v = is.v;
         float w = 1.0f - (u + v);
-        vec3 v0_normal = e->d_vertices[tr->idx_a].normal;
-        vec3 v1_normal = e->d_vertices[tr->idx_b].normal;
-        vec3 v2_normal = e->d_vertices[tr->idx_c].normal;
-        is.normal = u * v1_normal + v * v2_normal + w * v0_normal; // pure guess
-        is.normal.normalize();
+
+        //printf("in: u,v:   %g, %g\n", u, v);
+
+        // interpolate uv:s
+        if (e->d_material->has_albedo_map /*or any other texture*/ ) {
+            vec2 v0_uv = e->d_uvs[tr->vt_idx_a];
+            //printf("v0: u,v:   %g, %g\n", v0_uv.x, v0_uv.y);
+            vec2 v1_uv = e->d_uvs[tr->vt_idx_b];
+            //printf("v1: u,v:   %g, %g\n", v0_uv.x, v0_uv.y);
+            vec2 v2_uv = e->d_uvs[tr->vt_idx_c];
+            //printf("v2: u,v:   %g, %g\n", v0_uv.x, v0_uv.y);
+            vec2 intp_uv = u * v1_uv + v * v2_uv + w * v0_uv;
+            is.u = intp_uv.x;
+            is.v = intp_uv.y;
+        }
+
+        //printf("out: u,v:   %g, %g\n", is.u, is.v);
+
+        // interpolate normals for smooth shading
+        if (e->d_material->smooth_shading) {
+            vec3 v0_normal = e->d_vertices[tr->idx_a].normal;
+            vec3 v1_normal = e->d_vertices[tr->idx_b].normal;
+            vec3 v2_normal = e->d_vertices[tr->idx_c].normal;
+            is.normal = u * v1_normal + v * v2_normal + w * v0_normal; // pure guess
+            is.normal.normalize();
+        }
     }
 
     return is_hit;

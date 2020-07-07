@@ -8,7 +8,7 @@
 
 #include <string>
 #include <float.h>
-#include "material.h"
+#include "material.cuh"
 #include <vector>
 #include "vector.cuh"
 
@@ -46,7 +46,19 @@ struct Triangle {
         this->idx_b = idx_b;
         this->idx_c = idx_c;
     }
+    __host__ Triangle(
+            int idx_a, int idx_b, int idx_c,
+            int vt_idx_a, int vt_idx_b, int vt_idx_c
+    ) {
+        this->idx_a = idx_a;
+        this->idx_b = idx_b;
+        this->idx_c = idx_c;
+        this->vt_idx_a = vt_idx_a;
+        this->vt_idx_b = vt_idx_b;
+        this->vt_idx_c = vt_idx_c;
+    }
     int idx_a, idx_b, idx_c;
+    int vt_idx_a, vt_idx_b, vt_idx_c;
 };
 
 class Entity;
@@ -127,8 +139,10 @@ private:
     Octree *d_octree    = nullptr;
     Vertex *vertices    = nullptr;
     Triangle *triangles = nullptr;
+    vec2 *uvs           = nullptr;
     size_t n_triangles;
     size_t n_vertices;
+    size_t n_uvs;
     AABB aabb;
 
     // for sphere case:
@@ -146,11 +160,11 @@ public:
     /*
      * create triangle mesh entity from path to .obj. Providing your own material.
      */
-    Entity(const std::string &path, const Material &material);
+    Entity(const std::string &path, Material *material);
     /*
      * create sphere entity from coordinate and radius. Providing your own material.
      */
-    Entity(const vec3 &center, float radius, const Material &material);
+    Entity(const vec3 &center, float radius, Material *material);
     /*
      * Destruct. 
      */
@@ -181,12 +195,13 @@ public:
     // misc functions
     __host__ void print();
 
-    Material material;
+    Material *material;
+    Material *d_material;
 
     bool on_device = false;
     Vertex *d_vertices      = nullptr;
     Triangle *d_triangles   = nullptr;
-
+    vec2 *d_uvs             = nullptr;
 };
 
 __host__ inline bool triangle_inside_aabb(
