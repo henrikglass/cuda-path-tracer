@@ -168,43 +168,55 @@ __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local
     return Ray(ray_orig, ray_dir);
 }
 
+__device__ float luminosity(vec3 color) {
+    return dot(color, vec3(0.21f, 0.72f, 0.07f));
+}
+
 __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
     vec3 attenuation(1.0f, 1.0f, 1.0f);
     vec3 result(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < 6; i++) {
-        Intersection hit;
-        if (get_closest_intersection_in_scene(ray, scene->d_entities, scene->n_entities, hit)) {
-            Material *m = hit.entity->d_material;
-            vec3 specular = m->specular;
-            vec3 albedo = min(vec3(1.0f, 1.0f, 1.0f) - m->specular, m->sample_albedo(hit.u, hit.v));
-            float spec_chance = dot(specular, vec3(1.0f/3.0f, 1.0f/3.0f, 1.0f/3.0f));
-            float diff_chance = dot(albedo, vec3(1.0f/3.0f, 1.0f/3.0f, 1.0f/3.0f));
-            float sum = spec_chance + diff_chance;
-            spec_chance /= sum;
-            diff_chance /= sum;
 
-            float roulette = curand_uniform(local_rand_state);
-            if (roulette < spec_chance) {
-                // specular reflection
-                float alpha   = __powf(1000.0f, m->smoothness * m->smoothness);
-                ray.origin    = hit.position + hit.normal * 0.001f;
-                ray.direction = sample_hemisphere(reflect(ray.direction, hit.normal), alpha, local_rand_state);
-                ray.recalc_fracs();
-                float f       = (alpha + 2) / (alpha + 1);
-                attenuation   = attenuation * (1.0f / spec_chance) * specular * f * dot(hit.normal, ray.direction);
-            } else {
-                // diffuse reflection
-                result        = result + m->emission * m->albedo * attenuation;
-                ray.origin    = hit.position + hit.normal * 0.001f;
-                ray.direction = sample_hemisphere(hit.normal, 1.0f, local_rand_state);
-                ray.recalc_fracs();
-                attenuation   = attenuation * (1.0f / diff_chance) * albedo;
-            }
-        } else {
-            // sample environment
+        Intersection hit;
+        if (!trace(ray, scene->d_entities, scene->n_entities, hit)) {
             result = result + attenuation * scene->sample_hdri(ray.direction);
             break;
         }
+
+        // sample surface material properties
+        vec3 ts_normal   = hit.entity->d_material->sample_normal(hit.u, hit.v);
+        vec3 albedo      = hit.entity->d_material->sample_albedo(hit.u, hit.v);
+        float smoothness = hit.entity->d_material->sample_smoothness(hit.u, hit.v);
+        vec3 specular    = hit.entity->d_material->sample_specular(hit.u, hit.v);
+        float emission   = hit.entity->d_material->emission;
+        vec3 normal      = ts_normal * get_tangent_space(hit.normal);
+
+        // decide whether to do specular or diffuse reflection
+        albedo = min(1.0f - specular, albedo);
+        float spec_chance = luminosity(specular);
+        float diff_chance = luminosity(albedo);
+        float sum = spec_chance + diff_chance;
+        spec_chance /= sum;
+        diff_chance /= sum;
+        float roulette = curand_uniform(local_rand_state);
+
+        if (roulette < spec_chance) {
+            // specular reflection
+            float alpha   = __powf(1000.0f, smoothness * smoothness);
+            ray.origin    = hit.position + normal * 0.001f;
+            ray.direction = sample_hemisphere(reflect(ray.direction, normal), alpha, local_rand_state);
+            ray.recalc_fracs();
+            float f       = (alpha + 2) / (alpha + 1);
+            attenuation   = attenuation * (1.0f / spec_chance) * specular * f * dot(normal, ray.direction);
+        } else {
+            // diffuse reflection
+            result        = result + emission * albedo * attenuation;
+            ray.origin    = hit.position + normal * 0.001f;
+            ray.direction = sample_hemisphere(normal, 1.0f, local_rand_state);
+            ray.recalc_fracs();
+            attenuation   = attenuation * (1.0f / diff_chance) * albedo;
+        }
+
     }
     return result;
 }

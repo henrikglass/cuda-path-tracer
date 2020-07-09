@@ -180,7 +180,7 @@ public:
     // intersection functions
     __device__ bool get_closest_intersection(const Ray &ray, Intersection &bestHit);
     __device__ bool intersects_triangle(Triangle *triangle, Intersection &bestHit, const Ray &ray);
-    __device__ friend bool get_closest_intersection_in_scene(
+    __device__ friend bool trace(
             const Ray &ray, 
             Entity *entities, 
             int n_entities, 

@@ -132,6 +132,10 @@ __device__ __host__ inline vec3 operator*(const vec3& v, float s) {
 __device__ __host__ inline vec3 operator/(const vec3& v, float s) {
     return vec3(v.x / s, v.y / s, v.z / s);
 }
+__device__ __host__ inline vec3 operator-(float s, const vec3& v) {
+    return vec3(s - v.x, s - v.y, s - v.z);
+}
+
 
 // printing
 __host__ inline std::ostream& operator<<(std::ostream& os, const ivec2& v) {

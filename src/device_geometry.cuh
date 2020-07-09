@@ -1,14 +1,4 @@
 
-__device__ bool intersect_triangle(
-        vec3 v0, 
-        vec3 v1, 
-        vec3 v2, 
-        Triangle *triangle,
-        Entity *entity, 
-        Intersection &bestHit, 
-        const Ray &ray
-);
-
 __device__ bool intersects_aabb(
         float min_x,
         float min_y,
@@ -18,6 +8,16 @@ __device__ bool intersects_aabb(
         float max_z,
         const Ray &ray,
         const Intersection &bestHit
+);
+
+__device__ bool intersect_triangle(
+        vec3 v0, 
+        vec3 v1, 
+        vec3 v2, 
+        Triangle *triangle,
+        Entity *entity, 
+        Intersection &bestHit, 
+        const Ray &ray
 );
 
 __device__
@@ -205,7 +205,7 @@ inline bool Octree::proc_subtree(
 }
 
 __device__
-inline bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, int n_entities, Intersection &is) {
+inline bool trace(const Ray &ray, Entity *entities, int n_entities, Intersection &is) {
     bool is_hit = false;
     //long t1 = clock();
     for (int i = 0; i < n_entities; i++) {
@@ -225,7 +225,7 @@ inline bool get_closest_intersection_in_scene(const Ray &ray, Entity *entities, 
         //printf("in: u,v:   %g, %g\n", u, v);
 
         // interpolate uv:s
-        if (e->d_material->has_albedo_map /*or any other texture*/ ) {
+        if (e->d_material->textures_set) {
             vec2 v0_uv = e->d_uvs[tr->vt_idx_a];
             //printf("v0: u,v:   %g, %g\n", v0_uv.x, v0_uv.y);
             vec2 v1_uv = e->d_uvs[tr->vt_idx_b];
