@@ -16,7 +16,7 @@ int main(void) {
     //m_hc.smoothness = 1.0f;
     //m_hc.set_albedo_map("examples/hcandersen/textures/diff.jpg");
     //m_hc.set_smoothness_map("examples/hcandersen/textures/gloss.jpg");
-    m_hc.set_normal_map("examples/hcandersen/textures/normal_flat.jpg");
+    m_hc.set_normal_map("examples/hcandersen/textures/normal.jpg");
 
     // entities
     Entity floor("examples/cornellbox/floor.obj", &m_default);

@@ -65,11 +65,11 @@ struct Material {
     __device__ vec3 sample_normal(float u, float v) {
         if(!(this->textures_set & NORMAL_MAP_SET))
             return vec3(0.0f, 0.0f, 1.0f);
-        int pixel_idx = get_pixel_idx(u, v, normal_map_res, 2);
+        int pixel_idx = get_pixel_idx(u, v, normal_map_res, 3);
         return vec3(
-                (float(this->d_normal_map[pixel_idx]) * 2.0f - 1.0f) / 255.0f,
-                (float(this->d_normal_map[pixel_idx + 1]) * 2.0f - 1.0f) / 255.0f,
-                (float(this->d_normal_map[pixel_idx + 2]) * 2.0f - 1.0f) / 255.0f
+                (float(this->d_normal_map[pixel_idx] * 2 - 254)) / 255.0f,
+                (float(this->d_normal_map[pixel_idx + 1] * 2 - 254)) / 255.0f,
+                (float(this->d_normal_map[pixel_idx + 2] * 2 - 254)) / 255.0f
         ).normalized();
     }
 
