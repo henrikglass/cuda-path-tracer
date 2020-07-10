@@ -12,11 +12,11 @@ int main(void) {
     Material m_light(vec3(1,1,1), vec3(0.0f), 10, 0, false);
     Material m_default;
     Material m_hc;
-    //m_hc.specular = vec3(0.1f);
+    m_hc.specular = vec3(0.2f);
     //m_hc.smoothness = 1.0f;
-    //m_hc.set_albedo_map("examples/hcandersen/textures/diff.jpg");
-    //m_hc.set_smoothness_map("examples/hcandersen/textures/gloss.jpg");
-    m_hc.set_normal_map("examples/hcandersen/textures/normal.jpg");
+    m_hc.albedo_map.set("examples/hcandersen/textures/diff.jpg");
+    m_hc.smoothness_map.set("examples/hcandersen/textures/gloss.jpg");
+    m_hc.normal_map.set("examples/hcandersen/textures/normal.jpg");
 
     // entities
     Entity floor("examples/cornellbox/floor.obj", &m_default);
@@ -57,7 +57,9 @@ int main(void) {
     camera.focus_distance = 85;
 
     // render
-    Image image = render(camera, scene);
+    Renderer renderer;
+    renderer.set_samples_per_pixel(1024);
+    Image image = renderer.render(camera, scene);
     std::cout << image.resolution << std::endl;
     save_ppm("output.ppm", image);
 }

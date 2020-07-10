@@ -20,38 +20,6 @@ __device__ bool intersect_triangle(
         const Ray &ray
 );
 
-__device__
-inline bool Octree::get_closest_intersection(
-        Vertex *vertices, 
-        Triangle *triangles, 
-        const Ray &ray, 
-        Intersection &bestHit,
-        Entity *entity
-) {
-    if(!this->region.intersects(ray, bestHit))
-        return false;
-    
-    // check intersections for triangle in this node
-    bool hit = false;
-    for (int i = 0; i < this->n_triangle_indices; i++) {
-        int tri_idx = this->d_triangle_indices[i];
-        Triangle *triangle = &(triangles[tri_idx]);
-        vec3 v0 = vertices[triangle->idx_a].position;
-        vec3 v1 = vertices[triangle->idx_b].position;
-        vec3 v2 = vertices[triangle->idx_c].position;
-        hit = intersect_triangle(v0, v1, v2, triangle, entity, bestHit, ray) || hit;
-    }
-
-    // Check children
-    for (int i = 0; i < 8; i++) {
-        if(this->d_children[i] != nullptr) {
-            hit = d_children[i]->get_closest_intersection(vertices, triangles, ray, bestHit, entity) || hit;
-        }
-    }
-
-    return hit;
-}
-
 /*
  * Revelles et. al. parametric octree traversal algorithm.
  * Modified from: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.23.3092&rep=rep1&type=pdf
@@ -112,20 +80,18 @@ inline bool Octree::ray_step(
 __device__
 inline unsigned char find_first_node(const vec3 &t0, const vec3 &tM) {
     unsigned char answer = 0;
-    if (t0.x > t0.y) {
-        if (t0.x > t0.z) { // YZ plane
-            if (tM.y < t0.x) answer |= 2;//0b010;
-            if (tM.z < t0.x) answer |= 1;//0b001;
-            return answer;
-        }  
+    if (t0.x > t0.y && t0.x > t0.z) { // YZ plane
+        if (tM.y < t0.x) answer |= 0b010;
+        if (tM.z < t0.x) answer |= 0b001;
+        return answer;
     } else if (t0.y > t0.z) { // XZ plane
-        if (tM.x < t0.y) answer |= 4;//0b100;
-        if (tM.z < t0.y) answer |= 1;//0b001;
+        if (tM.x < t0.y) answer |= 0b100;
+        if (tM.z < t0.y) answer |= 0b001;
         return answer;
     } 
     // XY plane
-    if (tM.x < t0.z) answer |= 4;//0b100;
-    if (tM.y < t0.z) answer |= 2;//0b010;
+    if (tM.x < t0.z) answer |= 0b100;
+    if (tM.y < t0.z) answer |= 0b010;
     return answer;
 }
 
@@ -207,12 +173,9 @@ inline bool Octree::proc_subtree(
 __device__
 inline bool trace(const Ray &ray, Entity *entities, int n_entities, Intersection &is) {
     bool is_hit = false;
-    //long t1 = clock();
     for (int i = 0; i < n_entities; i++) {
         is_hit = entities[i].get_closest_intersection(ray, is) || is_hit;
     }
-    //long t2 = clock();
-    //printf("t: %ld\n", t2 - t1);
 
     // if hit entity has smooth_shading enabled, adjust the normal
     Triangle *tr = is.triangle;
@@ -222,22 +185,13 @@ inline bool trace(const Ray &ray, Entity *entities, int n_entities, Intersection
         float v = is.v;
         float w = 1.0f - (u + v);
 
-        //printf("in: u,v:   %g, %g\n", u, v);
-
         // interpolate uv:s
-        if (e->d_material->textures_set) {
-            vec2 v0_uv = e->d_uvs[tr->vt_idx_a];
-            //printf("v0: u,v:   %g, %g\n", v0_uv.x, v0_uv.y);
-            vec2 v1_uv = e->d_uvs[tr->vt_idx_b];
-            //printf("v1: u,v:   %g, %g\n", v0_uv.x, v0_uv.y);
-            vec2 v2_uv = e->d_uvs[tr->vt_idx_c];
-            //printf("v2: u,v:   %g, %g\n", v0_uv.x, v0_uv.y);
-            vec2 intp_uv = u * v1_uv + v * v2_uv + w * v0_uv;
-            is.u = intp_uv.x;
-            is.v = intp_uv.y;
-        }
-
-        //printf("out: u,v:   %g, %g\n", is.u, is.v);
+        vec2 v0_uv = e->d_uvs[tr->vt_idx_a];
+        vec2 v1_uv = e->d_uvs[tr->vt_idx_b];
+        vec2 v2_uv = e->d_uvs[tr->vt_idx_c];
+        vec2 intp_uv = u * v1_uv + v * v2_uv + w * v0_uv;
+        is.u = intp_uv.x;
+        is.v = intp_uv.y;
 
         // interpolate normals for smooth shading
         if (e->d_material->smooth_shading) {
@@ -271,7 +225,7 @@ inline bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection
     float p2sqr = __fsub_rn(__fmul_rn(p1, p1), dot(d,d)) + __fmul_rn(this->radius, this->radius);
     if (p2sqr < 0)
         return false;
-    float p2 = __fdividef(1.0f, __frsqrt_rn(p2sqr)); // sqrt(p2sqr)
+    float p2 = __fdividef(1.0f, __frsqrt_rn(p2sqr));
     float t = p1 - p2 > 0 ? p1 - p2 : p1 + p2;
     if (t > 0 && t < bestHit.distance)
     {
@@ -290,17 +244,13 @@ inline bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Inter
     if (!this->aabb.intersects(ray, bestHit))
         return false;
     
-    // no octree. Check against all triangles.
     if (this->octree == nullptr) {
-        //printf("as list");
         bool hit = false;
         for (size_t i = 0; i < this->n_triangles; i++) {
             hit = intersects_triangle(&(this->d_triangles[i]), bestHit, ray) || hit;
         }
         return hit;
     } else {
-        //printf("as octree");
-        //get_closest_intersection
         return this->d_octree->ray_step(
                 ray, 
                 bestHit, 
@@ -339,14 +289,12 @@ inline bool intersect_triangle(
     e1 = v1 - v0;
     e2 = v2 - v0;
 
-    // @Incomplete Might want to to back-face culling in the future.
-
     pvec = cross(ray.direction, e2);
     det = dot(e1, pvec);
     if (fabs(det) < EPSILON) 
         return false;
     
-    inv_det = __fdividef(1.0f, det); // 1.0f / det
+    inv_det = __fdividef(1.0f, det); 
     tvec = ray.origin - v0;
     u = dot(tvec, pvec) * inv_det;
     if (u < -0.0001f || u > 1.0001f)
@@ -412,16 +360,7 @@ inline bool intersects_aabb(
     tmin = fmaxf(tmin, fminf(tz1, tz2));
     tmax = fminf(tmax, fmaxf(tz1, tz2));
     
-    // box behind
-    if (tmax < 0.0f)
-        return false;
-    
-    // no intersection
-    if (tmin > tmax)
-        return false;
-
-    // we've already intersected some entity nearer ray origin 
-    if (bestHit.distance < tmin)
+    if (tmax < 0.0f || tmin > tmax || bestHit.distance < tmin)
         return false;
 
     return true;
