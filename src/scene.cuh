@@ -30,7 +30,7 @@ public:
     void free_from_device();
     void use_hdri_smoothing(bool b);
 
-    __device__ vec3 sample_hdri(const vec3 &v) const {
+    __device__ vec3 sample_hdri(vec3 v) const {
         if (!this->has_hdri)
             return vec3(0, 0, 0); 
         int x_i, y_i, pixel_idx;

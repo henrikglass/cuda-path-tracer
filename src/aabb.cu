@@ -31,7 +31,7 @@ int sign(float f) {
     return (f < 0.0f) ? -1 : 1;
 }
 
-bool plane_aabb_overlap(const vec3 &normal, float d, const vec3 &max_box) {
+bool plane_aabb_overlap(vec3 normal, float d, vec3 max_box) {
     vec3 v_min, v_max;
     v_min.x = -sign(normal.x) * max_box.x;
     v_max.x =  sign(normal.x) * max_box.x;
@@ -50,7 +50,7 @@ bool plane_aabb_overlap(const vec3 &normal, float d, const vec3 &max_box) {
  * https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf
  */
  __host__ 
-bool AABB::intersects_triangle(const vec3 &u0, const vec3 &u1, const vec3 &u2) {
+bool AABB::intersects_triangle(vec3 u0, vec3 u1, vec3 u2) {
     // aabb to center-extents representation
     vec3 aabb_center = 0.5f * (this->min + this->max);
     vec3 extents = (this->max - this->min) / 2;
@@ -133,7 +133,7 @@ inline bool inside_aabb(
         float max_x,
         float max_y,
         float max_z,
-        const vec3 &point
+        vec3 point
 ) {
     return  point.x > min_x && point.x < max_x &&
             point.y > min_y && point.y < max_y &&

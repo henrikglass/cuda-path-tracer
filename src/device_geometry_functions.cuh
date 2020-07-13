@@ -80,7 +80,7 @@ inline bool Octree::ray_step(
 }
 
 __device__
-inline unsigned char find_first_node(const vec3 &t0, const vec3 &tM) {
+inline unsigned char find_first_node(vec3 t0, vec3 tM) {
     unsigned char answer = 0;
     if (t0.x > t0.y && t0.x > t0.z) { // YZ plane
         if (tM.y < t0.x) answer |= 0b010;
@@ -185,14 +185,12 @@ inline bool trace(const Ray &ray, Entity *entities, int n_entities, Intersection
     if (is_hit && tr != nullptr) {
         float u = is.u;
         float v = is.v;
-        //float w = 1.0f - (u + v);
 
         // interpolate uv:s
         vec2 v0_uv = e->d_uvs[tr->vt_idx_a];
         vec2 v1_uv = e->d_uvs[tr->vt_idx_b];
         vec2 v2_uv = e->d_uvs[tr->vt_idx_c];
         vec2 intp_uv = bary_lerp(v0_uv, v1_uv, v2_uv, is.u, is.v);
-        //vec2 intp_uv = u * v1_uv + v * v2_uv + w * v0_uv;
         is.u = intp_uv.x;
         is.v = intp_uv.y;
 
@@ -202,7 +200,6 @@ inline bool trace(const Ray &ray, Entity *entities, int n_entities, Intersection
             vec3 v1_normal = e->d_vertices[tr->idx_b].normal;
             vec3 v2_normal = e->d_vertices[tr->idx_c].normal;
             is.normal = bary_lerp(v0_normal, v1_normal, v2_normal, u, v);
-            //is.normal = u * v1_normal + v * v2_normal + w * v0_normal; // pure guess
             is.normal.normalize();
         }
     }

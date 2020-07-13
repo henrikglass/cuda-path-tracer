@@ -39,9 +39,9 @@ void compound(std::vector<vec3> &out_image, const std::vector<vec3> &in_buf, int
 void tonemap(std::vector<vec3> &buf, int n_samples_per_pixel, float gamma);
 
 // device
-__device__ vec3 reflect(const vec3 &dir, const vec3 &normal);
-__device__ vec3 sample_hemisphere(const vec3 &dir, float alpha, curandState *local_rand_state);
-__device__ mat3 get_tangent_space(const vec3 &normal);
+__device__ vec3 reflect(vec3 dir, vec3 normal);
+__device__ vec3 sample_hemisphere(vec3 dir, float alpha, curandState *local_rand_state);
+__device__ mat3 get_tangent_space(vec3 normal);
 __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state);
 __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local_rand_state);
 

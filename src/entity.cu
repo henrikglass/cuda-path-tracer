@@ -147,7 +147,7 @@ Entity::Entity(const std::string &path, Material *material) {
 /*
  * Sphere.
  */
-Entity::Entity(const vec3 &center, float radius, Material *material) {
+Entity::Entity(vec3 center, float radius, Material *material) {
     this->shape     = SPHERE;
     this->center    = center;
     this->radius    = radius;

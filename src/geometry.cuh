@@ -83,7 +83,7 @@ struct AABB {
     }
     __host__ void recalculate(Vertex *vertices, int n_vertices);
     __host__ bool contains_triangle(vec3 v0, vec3 v1, vec3 v2);
-    __host__ bool intersects_triangle(const vec3 &u0, const vec3 &u1, const vec3 &u2);
+    __host__ bool intersects_triangle(vec3 u0, vec3 u1, vec3 u2);
     __device__ bool intersects(const Ray &ray, const Intersection &bestHit);
     vec3 min;
     vec3 max;
@@ -164,7 +164,7 @@ public:
     /*
      * create sphere entity from coordinate and radius. Providing your own material.
      */
-    Entity(const vec3 &center, float radius, Material *material);
+    Entity(vec3 center, float radius, Material *material);
     /*
      * Destruct. 
      */
@@ -223,7 +223,7 @@ __host__ inline bool inside_aabb(
         float max_x,
         float max_y,
         float max_z,
-        const vec3 &point
+        vec3 point
 );
 
 

@@ -22,10 +22,10 @@ struct vec2 {
         this->x = x;
         this->y = y;
     }
-    __device__ __host__ vec2 operator+(const vec2& v) const {
+    __device__ __host__ vec2 operator+(vec2 v) const {
         return vec2(this->x + v.x, this->y + v.y);
     }
-    __device__ __host__ vec2 operator-(const vec2& v) const {
+    __device__ __host__ vec2 operator-(vec2 v) const {
         return vec2(this->x - v.x, this->y - v.y);
     }
     __device__ __host__ vec2 normalized() const {
@@ -57,10 +57,10 @@ struct vec3 {
         this->y = y;
         this->z = z;
     }
-    __device__ __host__ vec3 operator+(const vec3& v) const {
+    __device__ __host__ vec3 operator+(vec3 v) const {
         return vec3(this->x + v.x, this->y + v.y, this->z + v.z);
     }
-    __device__ __host__ vec3 operator-(const vec3& v) const {
+    __device__ __host__ vec3 operator-(vec3 v) const {
         return vec3(this->x - v.x, this->y - v.y, this->z - v.z);
     }
     __device__ __host__ vec3 operator-() const {
@@ -83,13 +83,13 @@ struct vec3 {
 };
 
 // vector-vector products
-__host__ __device__ inline float dot(const vec2& a, const vec2& b) {
+__host__ __device__ inline float dot(vec2 a, vec2 b) {
     return a.x * b.x + a.y * b.y;
 }
-__host__ __device__ inline float dot(const vec3& a, const vec3& b) {
+__host__ __device__ inline float dot(vec3 a, vec3 b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
-__host__ __device__ inline vec3 cross(const vec3& a, const vec3& b) {
+__host__ __device__ inline vec3 cross(vec3 a, vec3 b) {
     return vec3(
             (a.y * b.z) - (a.z * b.y),
             (a.z * b.x) - (a.x * b.z),
@@ -98,41 +98,41 @@ __host__ __device__ inline vec3 cross(const vec3& a, const vec3& b) {
 }
 
 // distance
-__device__ inline float distance(const vec3 &a, const vec3 &b) {
+__device__ inline float distance(vec3 a, vec3 b) {
     float dx = b.x - a.x;
     float dy = b.y - a.y;
     float dz = b.z - a.z;
     return __fsqrt_rn(dx*dx + dy*dy + dz*dz);
 }
 
-__device__ inline vec3 min(const vec3 &a, const vec3 &b) {
+__device__ inline vec3 min(vec3 a, vec3 b) {
     return vec3(fminf(a.x, b.x), fminf(a.y, b.y), fminf(a.z, b.z));
 }
 
 // Hadamard product (element wise)
-__host__ __device__ inline vec3 operator*(const vec3 &a, const vec3 &b) {
+__host__ __device__ inline vec3 operator*(vec3 a, vec3 b) {
     return vec3(a.x * b.x, a.y * b.y, a.z * b.z);
 }
 
 // Hadamard division (?) (element wise)
-__host__ __device__ inline vec3 operator/(const vec3 &a, const vec3 &b) {
+__host__ __device__ inline vec3 operator/(vec3 a, vec3 b) {
     return vec3(a.x / b.x, a.y / b.y, a.z / b.z);
 }
 
 // scalar operations
-__device__ __host__ inline vec2 operator*(float s, const vec2& v) {
+__device__ __host__ inline vec2 operator*(float s, vec2 v) {
     return vec2(s * v.x, s * v.y);
 }
-__device__ __host__ inline vec3 operator*(float s, const vec3& v) {
+__device__ __host__ inline vec3 operator*(float s, vec3 v) {
     return vec3(s * v.x, s * v.y, s * v.z);
 }
-__device__ __host__ inline vec3 operator*(const vec3& v, float s) {
+__device__ __host__ inline vec3 operator*(vec3 v, float s) {
     return operator*(s, v);
 }
-__device__ __host__ inline vec3 operator/(const vec3& v, float s) {
+__device__ __host__ inline vec3 operator/(vec3 v, float s) {
     return vec3(v.x / s, v.y / s, v.z / s);
 }
-__device__ __host__ inline vec3 operator-(float s, const vec3& v) {
+__device__ __host__ inline vec3 operator-(float s, vec3 v) {
     return vec3(s - v.x, s - v.y, s - v.z);
 }
 
@@ -183,7 +183,7 @@ struct mat3 {
     }
 };
 
-__device__ __host__ inline vec3 operator*(const vec3& v, const mat3 &m) {
+__device__ __host__ inline vec3 operator*(vec3 v, const mat3 &m) {
     return vec3(
         v.x * m.m00 + v.y * m.m01 + v.z * m.m02,
         v.x * m.m10 + v.y * m.m11 + v.z * m.m12,

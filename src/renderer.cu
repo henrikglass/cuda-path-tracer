@@ -128,11 +128,11 @@ __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
     return result;
 }
 
-__device__ vec3 reflect(const vec3 &dir, const vec3 &normal) {
+__device__ vec3 reflect(vec3 dir, vec3 normal) {
     return dir - 2.0f * dot(dir, normal) * normal;
 }
 
-__device__ vec3 sample_hemisphere(const vec3 &dir, float alpha, curandState *local_rand_state) {    
+__device__ vec3 sample_hemisphere(vec3 dir, float alpha, curandState *local_rand_state) {    
     float cos_theta = __powf(curand_uniform(local_rand_state), 1.0f / (alpha + 1.0f));
     float sin_theta = __fsqrt_rn(1.0f - cos_theta * cos_theta);
     float phi = 2 * PI * curand_uniform(local_rand_state);
@@ -140,7 +140,7 @@ __device__ vec3 sample_hemisphere(const vec3 &dir, float alpha, curandState *loc
     return tangent_space_dir * get_tangent_space(dir);
 }
 
-__device__ mat3 get_tangent_space(const vec3 &normal) {
+__device__ mat3 get_tangent_space(vec3 normal) {
     vec3 helper = vec3(1, 0, 0);
     if (fabsf(normal.x) > 0.99f)
         helper = vec3(0, 0, 1);
