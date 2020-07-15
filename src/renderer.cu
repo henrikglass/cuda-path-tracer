@@ -5,6 +5,7 @@
 #include "geometry.cuh"
 #include "util.cuh"
 #include "vector.cuh"
+#include "post_processing.cuh"
 
 /*
  * Device side
@@ -83,7 +84,6 @@ __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
     vec3 attenuation(1.0f, 1.0f, 1.0f);
     vec3 result(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < 6; i++) {
-
         Intersection hit;
         if (!trace(ray, scene->d_entities, scene->n_entities, hit)) {
             result = result + attenuation * scene->sample_hdri(ray.direction);
@@ -150,50 +150,8 @@ __device__ mat3 get_tangent_space(vec3 normal) {
 }
 
 /*
- * Host side image processing
+ * Host functions
  */
-
-vec3 ACESFilm(vec3 x)
-{
-    // From: https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-    float a = 2.51f;
-    float b = 0.03f;
-    float c = 2.43f;
-    float d = 0.59f;
-    float e = 0.14f;
-    vec3 res = (x*(a*x+b))/(x*(c*x+d)+e);
-    res.x = max(0.0f, min(1.0f, res.x));
-    res.y = max(0.0f, min(1.0f, res.y));
-    res.z = max(0.0f, min(1.0f, res.z));
-    return res;
-}
-
-void Renderer::tonemap(
-        std::vector<vec3> &buf, 
-        float gamma
-) {
-    int n_samples_per_pixel = this->n_split_buffers * 
-            this->n_blocks_per_tile * this->n_samples_per_pass;
-    for (size_t i = 0; i < buf.size(); i++) {
-        buf[i] = buf[i] / n_samples_per_pixel;
-        buf[i] = ACESFilm(buf[i]);
-        buf[i].x = pow(buf[i].x, 1.0f / gamma);
-        buf[i].y = pow(buf[i].y, 1.0f / gamma);
-        buf[i].z = pow(buf[i].z, 1.0f / gamma);
-    }
-}
-
-void Renderer::compound_buffers(std::vector<vec3> &out_image, const std::vector<vec3> &in_buf) {
-    std::cout << "capacity: " << out_image.capacity() << std::endl;
-    size_t single_buffer_size = out_image.capacity();
-    for (size_t i = 0; i < single_buffer_size; i++) {
-        vec3 sum(0);
-        for(unsigned int j = 0; j < this->n_split_buffers; j++) {
-            sum = sum + in_buf[i + j * single_buffer_size];
-        }
-        out_image[i] = sum;
-    }
-}
 
 void Renderer::set_samples_per_pixel(unsigned int spp) {
     this->n_samples_per_pass = max(spp / (this->n_blocks_per_tile * this->n_split_buffers), 1);
@@ -273,11 +231,37 @@ Image Renderer::render(const Camera &camera, Scene &scene) {
     gpuErrchk(cudaPeekAtLastError());
 
     // compound split buffers into single image
-    compound_buffers(result_pixels, h_buf);
+    compound_buffers(result_pixels, h_buf, this->n_split_buffers);
 
     // normalize and gamma correct image
     //tonemap(result_pixels, 32, 2.2f);
-    tonemap(result_pixels, 2.2f);
+    int n_samples_per_pixel = this->n_split_buffers * 
+            this->n_blocks_per_tile * this->n_samples_per_pass;
+    
+    // **********************************************
+    // *************** post process *****************
+    // **********************************************
+    
+    normalize_image(result_pixels, n_samples_per_pixel);
+    
+    // PP on HDR image
+    std::vector<vec3> bright_parts = apply_threshold(result_pixels, 3.0f);
+    ////result_pixels = apply_threshold(result_pixels, 1.0f);
+    Kernel k;
+    ////k.make_mean(2); // 5x5 kernel
+    k.make_gaussian(128, 0.25f); // 11x11 kernel
+    //k.print();
+    ////exit(0);
+    apply_filter(bright_parts, camera.resolution, k);
+    image_add(result_pixels,  bright_parts);
+
+    apply_aces(result_pixels);
+    //apply_filter(result_pixels, camera.resolution, k);
+    gamma_correct(result_pixels, 2.2f);
+    
+    // **********************************************
+    // **********************************************
+    // **********************************************
 
     // free scene from device memory (should not be necessary, but why not)
     std::cout << "freeing scene from device..." << std::endl;

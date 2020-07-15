@@ -20,6 +20,7 @@ int main(void) {
 
     // entities
     Entity floor("examples/cornellbox/floor.obj", &m_default);
+    Entity ball(vec3(10, 40, 30), 3.0f, &m_light);
     Entity hcandersen("examples/hcandersen/source/80k.obj", &m_hc);
 
     // transforms
@@ -36,12 +37,13 @@ int main(void) {
     // add to scene scene
     Scene scene;
     scene.add_entity(&hcandersen);
+    scene.add_entity(&ball);
     //scene.add_entity(&floor);
 
     //scene.set_hdri("examples/hdris/pink_sunrise_4k.hdr");
     scene.use_hdri_smoothing(true);
     //scene.rotate_hdri(0.85f);
-    scene.set_hdri("examples/hdris/quattro_canti_4k.hdr");
+    //scene.set_hdri("examples/hdris/quattro_canti_4k.hdr");
     scene.rotate_hdri(0.50f);
 
     // camera
@@ -59,7 +61,8 @@ int main(void) {
 
     // render
     Renderer renderer;
-    renderer.set_samples_per_pixel(1024);
+    //renderer.set_samples_per_pixel(1024);
+    renderer.set_samples_per_pixel(512);
     Image image = renderer.render(camera, scene);
     std::cout << image.resolution << std::endl;
     save_ppm("output.ppm", image);

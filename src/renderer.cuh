@@ -22,9 +22,6 @@ struct RenderConfig {
 
 // host
 class Renderer {
-private:
-    void compound_buffers(std::vector<vec3> &out_image, const std::vector<vec3> &in_buf);
-    void tonemap(std::vector<vec3> &buf, float gamma);
 public:
     unsigned int n_split_buffers    = 4;
     unsigned int n_blocks_per_tile  = 8;
@@ -33,10 +30,6 @@ public:
     void set_samples_per_pixel(unsigned int spp);
     Image render(const Camera &camera, Scene &scene);
 };
-
-Image render(const Camera &camera, Scene &scene);
-void compound(std::vector<vec3> &out_image, const std::vector<vec3> &in_buf, int n_split_buffers);
-void tonemap(std::vector<vec3> &buf, int n_samples_per_pixel, float gamma);
 
 // device
 __device__ vec3 reflect(vec3 dir, vec3 normal);

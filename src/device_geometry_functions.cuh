@@ -110,8 +110,8 @@ inline unsigned char next_node(
     return z;
 }
 
-__device__ 
-inline bool Octree::proc_subtree(
+__device__ /*__noinline__*/
+/*inline*/ bool Octree::proc_subtree(
         unsigned char a,
         vec3 t0, 
         vec3 t1,
