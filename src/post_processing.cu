@@ -2,21 +2,27 @@
 #include <assert.h>
 #include <cmath>
 #include <vector>
+#include "util.cuh"
 
 /*
  * Kernel
  */
 
 void Kernel::print() {
+    // we copy from device memory every time. But it's fine. print() is only for debugging.
+    size_t buf_size = (this->size*2+1) * (this->size*2+1);
+    float *temp_buf = new float[buf_size];
+    gpuErrchk(cudaMemcpy(temp_buf, this->d_buf, buf_size*sizeof(float), cudaMemcpyDeviceToHost));
     float sum = 0.0f;
     for (size_t y = 0; y < size*2 + 1; y++) {
         for (size_t x = 0; x < size*2 + 1; x++) {
-            printf("%d ", int(10 * buf[y * (2*size + 1) + x])); 
-            sum += buf[y * (2*size + 1) + x];
+            printf("%d ", int(10 * temp_buf[y * (2*size + 1) + x])); 
+            sum += temp_buf[y * (2*size + 1) + x];
         }
         printf("\n");
     }
     printf("sum: %g\n", sum);
+    delete [] temp_buf;
 }
 
 float sample_gaussian(float x, float y, float sigma) {
@@ -32,64 +38,105 @@ float sample_gaussian(float x, float y, float sigma) {
  * All kernel samples are within [(-1,-1), (1, 1)] of a gaussian distribution.
  */
 void Kernel::make_gaussian(unsigned int _size, float sigma) {
-    assert(this->buf == nullptr);
+    assert(this->d_buf == nullptr);
     this->size = _size;
     size_t buf_size = (2 * size + 1) * (2 * size + 1);
-    this->buf = new float[buf_size];
+    float *temp_buf = new float[buf_size];
     int ssize = _size;
     for (int y = 0; y < ssize*2 + 1; y++) {
         for (int x = 0; x < ssize*2 + 1; x++) {
             size_t idx = y * (this->size * 2  + 1) + x;
             float sample_pos_x = float(x - ssize) / float(ssize);
             float sample_pos_y = float(y - ssize) / float(ssize);
-            buf[idx] = sample_gaussian(sample_pos_x, sample_pos_y, sigma);
+            temp_buf[idx] = sample_gaussian(sample_pos_x, sample_pos_y, sigma);
         }
     } 
+    gpuErrchk(cudaMalloc(&(this->d_buf), buf_size * sizeof(float)));
+    gpuErrchk(cudaMemcpy(this->d_buf, temp_buf, buf_size*sizeof(float), cudaMemcpyHostToDevice));
+    delete[] temp_buf;
 }
 
 void Kernel::make_mean(unsigned int _size) {
-    assert(this->buf == nullptr);
+    assert(this->d_buf == nullptr);
     this->size = _size;
     size_t buf_size = (2 * size + 1) * (2 * size + 1);
-    this->buf = new float[buf_size];
+    float *temp_buf = new float[buf_size];
     for (size_t i = 0; i < buf_size; i++) {
-        buf[i] = 1.0f;
+        temp_buf[i] = 1.0f;
     }
+    gpuErrchk(cudaMalloc(&(this->d_buf), buf_size * sizeof(float)));
+    gpuErrchk(cudaMemcpy(this->d_buf, temp_buf, buf_size*sizeof(float), cudaMemcpyHostToDevice));
+    delete[] temp_buf;
 }
 
+__device__
 float Kernel::at(int x, int y) const {
     y = this->size + y;
     x = this->size + x;
     size_t idx = y * (this->size * 2 + 1) + x;
-    return this->buf[idx];
+    return this->d_buf[idx];
 }
 
 
 void apply_filter(std::vector<vec3> &buf, ivec2 resolution, const Kernel &kernel) {
-    std::vector<vec3> out_buf(buf.size());
-    int width  = resolution.x; 
-    int height = resolution.y; 
-    int ks = kernel.size;
-    for (int i = 0 ; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            float kernel_weight = 0; // @Incomplete TODO precompute kernel weight and subtract pixels outside image bounds 
-            vec3 result(0.0f);
-            for (int y = -ks; y <= ks; y++) {
-                for (int x = -ks; x <= ks; x++) {
-                    int img_y = i + y;
-                    int img_x = j + x;
-                    size_t img_idx = img_y * width + img_x;
-                    if (img_y < 0 || img_y >= height || img_x < 0 || img_x >= width)
-                        continue; // out of image bounds 
-                    result = result + kernel.at(x, y) * buf[img_idx]; 
-                    kernel_weight += kernel.at(x, y);
-                }
-            }
-            result = result / kernel_weight; 
-            out_buf[i * width + j] = result;
+    // prepare buffers and kernel
+    size_t buf_size = resolution.x * resolution.y * sizeof(vec3);
+    vec3 *in_buf;
+    vec3 *out_buf;
+    Kernel *d_kernel;
+    gpuErrchk(cudaMalloc(&in_buf, buf_size));
+    gpuErrchk(cudaMalloc(&out_buf, buf_size));
+    gpuErrchk(cudaMalloc(&d_kernel, sizeof(Kernel)));
+    gpuErrchk(cudaMemcpy(in_buf, &(buf[0]), buf_size, cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_kernel, &kernel, sizeof(Kernel), cudaMemcpyHostToDevice));
+
+    // prepare blocks & threads
+    int tile_size = 8;
+    dim3 blocks(
+            resolution.x / tile_size, 
+            resolution.y / tile_size
+    );
+    dim3 threads(tile_size, tile_size);
+
+    // apply filter on image on device 
+    device_apply_filter<<<blocks, threads>>>(out_buf, in_buf, buf_size, resolution, d_kernel);
+    gpuErrchk(cudaDeviceSynchronize());
+
+    // copy results
+    gpuErrchk(cudaMemcpy(&(buf[0]), out_buf, buf_size, cudaMemcpyDeviceToHost)); 
+
+    // cleanup
+    gpuErrchk(cudaFree(in_buf));
+    gpuErrchk(cudaFree(out_buf));
+    gpuErrchk(cudaFree(d_kernel));
+}
+
+
+__global__ 
+void device_apply_filter(vec3 *out_buf, vec3 *in_buf, size_t buf_size, ivec2 resolution, Kernel *kernel) {
+    int u = blockIdx.x * blockDim.x + threadIdx.x;
+    int v = blockIdx.y * blockDim.y + threadIdx.y;
+    int pixel_idx = v * resolution.x +  u;
+
+    int width  = resolution.x;
+    int height = resolution.y;
+    int ks     = kernel->size;
+    
+    float kernel_weight = 0.0f;
+    vec3 pixel(0.0f); 
+    for (int y = -ks; y <= ks; y++) {
+        for (int x = -ks; x <= ks; x++) {
+            int img_y = v + y;
+            int img_x = u + x;
+            size_t img_idx = img_y * width + img_x;
+            if (img_y < 0 || img_y >= height || img_x < 0 || img_x >= width)
+                continue; // out of image bounds (crop for now)
+            pixel = pixel + kernel->at(x, y) * in_buf[img_idx]; 
+            kernel_weight += kernel->at(x, y);
         }
     }
-    buf = out_buf;
+    pixel = pixel / kernel_weight; 
+    out_buf[pixel_idx] = pixel;
 }
 
 /*

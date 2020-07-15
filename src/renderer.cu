@@ -270,5 +270,6 @@ Image Renderer::render(const Camera &camera, Scene &scene) {
     std::cout << "done!" << std::endl;
 
     // return result
+    // @Incomplete MUST cudaFree(buf);
     return Image(result_pixels, camera.resolution);
 }
