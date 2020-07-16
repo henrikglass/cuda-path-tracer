@@ -249,11 +249,11 @@ Image Renderer::render(const Camera &camera, Scene &scene) {
     ////result_pixels = apply_threshold(result_pixels, 1.0f);
     Kernel k;
     ////k.make_mean(2); // 5x5 kernel
-    k.make_gaussian(128, 0.25f); // 11x11 kernel
+    k.make_gaussian(32, 0.3f); // 11x11 kernel
     //k.print();
     ////exit(0);
     apply_filter(bright_parts, camera.resolution, k);
-    image_add(result_pixels,  bright_parts);
+    image_add(result_pixels,  bright_parts, 0.5f);
 
     apply_aces(result_pixels);
     //apply_filter(result_pixels, camera.resolution, k);

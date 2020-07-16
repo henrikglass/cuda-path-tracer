@@ -7,7 +7,6 @@
 /*
  * Kernel
  */
-
 void Kernel::print() {
     // we copy from device memory every time. But it's fine. print() is only for debugging.
     size_t buf_size = (this->size*2+1) * (this->size*2+1);
@@ -209,10 +208,10 @@ std::vector<vec3> apply_threshold(const std::vector<vec3> &in_buf, float thresho
     return result;
 }
 
-void image_add(std::vector<vec3> &buf, const std::vector<vec3> &layer) {
+void image_add(std::vector<vec3> &buf, const std::vector<vec3> &layer, float opacity) {
     assert(buf.size() == layer.size()); 
     for (size_t i = 0; i < buf.size(); i++) {
-        buf[i] = buf[i] + layer[i];
+        buf[i] = buf[i] + opacity * layer[i];
     }
 }
 

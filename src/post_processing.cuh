@@ -28,7 +28,7 @@ void compound_buffers(std::vector<vec3> &out_image, const std::vector<vec3> &in_
 void normalize_image(std::vector<vec3> &buf, unsigned int n_samples_per_pixel);
 void gamma_correct(std::vector<vec3> &buf, float gamma);
 void apply_aces(std::vector<vec3> &buf);
-void image_add(std::vector<vec3> &buf, const std::vector<vec3> &layer);
+void image_add(std::vector<vec3> &buf, const std::vector<vec3> &layer, float opacity = 1.0f);
 
 std::vector<vec3> apply_threshold(const std::vector<vec3> &in_buf, float threshold);
 void apply_filter(std::vector<vec3> &buf, ivec2 resolution, const Kernel &kernel);
