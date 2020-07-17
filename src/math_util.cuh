@@ -1,6 +1,10 @@
 #ifndef MATH_UTIL_H
 #define MATH_UTIL_H
 
+#define C_PI 3.1415926535f
+#define C_E 2.7182818284f
+
+
 template<typename T>
 __host__ __device__ T bary_lerp(T a, T b, T c, float u, float v) {
     float w = 1.0f - (u + v);

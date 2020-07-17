@@ -76,10 +76,6 @@ __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local
     return Ray(ray_orig, ray_dir);
 }
 
-__device__ float luminosity(vec3 color) {
-    return dot(color, vec3(0.21f, 0.72f, 0.07f));
-}
-
 __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
     vec3 attenuation(1.0f, 1.0f, 1.0f);
     vec3 result(0.0f, 0.0f, 0.0f);
@@ -249,15 +245,20 @@ Image Renderer::render(const Camera &camera, Scene &scene) {
     ////result_pixels = apply_threshold(result_pixels, 1.0f);
     Kernel k;
     ////k.make_mean(2); // 5x5 kernel
-    k.make_gaussian(32, 0.3f); // 11x11 kernel
+    k.make_gaussian(32, 10.0f);
     //k.print();
     ////exit(0);
     apply_filter(bright_parts, camera.resolution, k);
     image_add(result_pixels,  bright_parts, 0.5f);
 
+    Kernel kk;
+    kk.make_gaussian(4, 1.0f);
+    //apply_filter(result_pixels, camera.resolution, kk, BILATERAL);
+
     apply_aces(result_pixels);
     //apply_filter(result_pixels, camera.resolution, k);
     gamma_correct(result_pixels, 2.2f);
+    apply_filter(result_pixels, camera.resolution, k, BILATERAL);
     
     // **********************************************
     // **********************************************

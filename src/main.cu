@@ -42,9 +42,8 @@ int main(void) {
 
     //scene.set_hdri("examples/hdris/pink_sunrise_4k.hdr");
     scene.use_hdri_smoothing(true);
-    //scene.rotate_hdri(0.85f);
-    //scene.set_hdri("examples/hdris/quattro_canti_4k.hdr");
-    scene.rotate_hdri(0.50f);
+    scene.set_hdri("examples/hdris/quattro_canti_4k.hdr");
+    scene.rotate_hdri(0.85f);
 
     // camera
     ivec2 res = ivec2(1024, 768);
@@ -56,13 +55,13 @@ int main(void) {
     Camera camera(vec3(40.5f, 30.5f, -50), vec3(-0.5, 0, 1).normalized(), res);
     camera.focal_length = 2.5f;
     //camera.focal_length = 1.0f;
-    //camera.aperture = 2;
+    camera.aperture = 1;
     camera.focus_distance = 85;
 
     // render
     Renderer renderer;
     //renderer.set_samples_per_pixel(1024);
-    renderer.set_samples_per_pixel(512);
+    renderer.set_samples_per_pixel(320);
     Image image = renderer.render(camera, scene);
     std::cout << image.resolution << std::endl;
     save_ppm("output.ppm", image);

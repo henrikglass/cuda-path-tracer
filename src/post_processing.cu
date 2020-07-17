@@ -3,6 +3,7 @@
 #include <cmath>
 #include <vector>
 #include "util.cuh"
+#include "math_util.cuh"
 
 /*
  * Kernel
@@ -24,7 +25,13 @@ void Kernel::print() {
     delete [] temp_buf;
 }
 
-float sample_gaussian(float x, float y, float sigma) {
+__device__ float sample_gaussian_1d(float x, float sigma) {
+    float fac = 1.0f / (sigma*sigma*2*C_PI);
+    float exp = -((x*x) / (2*sigma*sigma));
+    return fac * powf(C_E, exp);
+}
+
+float sample_gaussian_2d(float x, float y, float sigma) {
     // @Incomplete maybe integrate from (x,y) - 0.5 to (x,y) + 0.5
     // for more accurate samples
     float fac = 1.0f / (sigma*sigma*2*M_PI);
@@ -33,8 +40,7 @@ float sample_gaussian(float x, float y, float sigma) {
 }
 
 /*
- * Makes a gaussian kernel. Distribution is normalized to the kernel size.
- * All kernel samples are within [(-1,-1), (1, 1)] of a gaussian distribution.
+ * Makes a gaussian kernel.
  */
 void Kernel::make_gaussian(unsigned int _size, float sigma) {
     assert(this->d_buf == nullptr);
@@ -45,9 +51,9 @@ void Kernel::make_gaussian(unsigned int _size, float sigma) {
     for (int y = 0; y < ssize*2 + 1; y++) {
         for (int x = 0; x < ssize*2 + 1; x++) {
             size_t idx = y * (this->size * 2  + 1) + x;
-            float sample_pos_x = float(x - ssize) / float(ssize);
-            float sample_pos_y = float(y - ssize) / float(ssize);
-            temp_buf[idx] = sample_gaussian(sample_pos_x, sample_pos_y, sigma);
+            float sample_pos_x = float(x - ssize);
+            float sample_pos_y = float(y - ssize);
+            temp_buf[idx] = sample_gaussian_2d(sample_pos_x, sample_pos_y, sigma);
         }
     } 
     gpuErrchk(cudaMalloc(&(this->d_buf), buf_size * sizeof(float)));
@@ -76,34 +82,23 @@ float Kernel::at(int x, int y) const {
     return this->d_buf[idx];
 }
 
-
-void apply_filter(std::vector<vec3> &buf, ivec2 resolution, const Kernel &kernel) {
+void apply_filter(std::vector<vec3> &buf, ivec2 resolution, const Kernel &kernel, FilterType filter_type) {
     // prepare buffers and kernel
-    size_t buf_size = resolution.x * resolution.y * sizeof(vec3);
-    vec3 *in_buf;
-    vec3 *out_buf;
-    Kernel *d_kernel;
-    gpuErrchk(cudaMalloc(&in_buf, buf_size));
-    gpuErrchk(cudaMalloc(&out_buf, buf_size));
-    gpuErrchk(cudaMalloc(&d_kernel, sizeof(Kernel)));
-    gpuErrchk(cudaMemcpy(in_buf, &(buf[0]), buf_size, cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(d_kernel, &kernel, sizeof(Kernel), cudaMemcpyHostToDevice));
-
-    // prepare blocks & threads
+    size_t buf_size = buf.size() * sizeof(vec3);
+    vec3 *in_buf = prepare_cuda_buffer(buf);
+    vec3 *out_buf = prepare_empty_cuda_buffer<vec3>(buf.size());
+    Kernel *d_kernel = prepare_cuda_instance(kernel);
     int tile_size = 8;
-    dim3 blocks(
-            resolution.x / tile_size, 
-            resolution.y / tile_size
-    );
+    dim3 blocks(resolution.x / tile_size, resolution.y / tile_size);
     dim3 threads(tile_size, tile_size);
-
+    
     // apply filter on image on device 
-    device_apply_filter<<<blocks, threads>>>(out_buf, in_buf, buf_size, resolution, d_kernel);
+    device_apply_filter<<<blocks, threads>>>(out_buf, in_buf, buf_size, resolution, d_kernel, filter_type);
     gpuErrchk(cudaDeviceSynchronize());
-
+    
     // copy results
     gpuErrchk(cudaMemcpy(&(buf[0]), out_buf, buf_size, cudaMemcpyDeviceToHost)); 
-
+    
     // cleanup
     gpuErrchk(cudaFree(in_buf));
     gpuErrchk(cudaFree(out_buf));
@@ -112,7 +107,14 @@ void apply_filter(std::vector<vec3> &buf, ivec2 resolution, const Kernel &kernel
 
 
 __global__ 
-void device_apply_filter(vec3 *out_buf, vec3 *in_buf, size_t buf_size, ivec2 resolution, Kernel *kernel) {
+void device_apply_filter(
+        vec3 *out_buf,
+        vec3 *in_buf, 
+        size_t buf_size,
+        ivec2 resolution,
+        Kernel *kernel,
+        FilterType filter_type
+) {
     int u = blockIdx.x * blockDim.x + threadIdx.x;
     int v = blockIdx.y * blockDim.y + threadIdx.y;
     int pixel_idx = v * resolution.x +  u;
@@ -120,18 +122,30 @@ void device_apply_filter(vec3 *out_buf, vec3 *in_buf, size_t buf_size, ivec2 res
     int width  = resolution.x;
     int height = resolution.y;
     int ks     = kernel->size;
-    
     float kernel_weight = 0.0f;
     vec3 pixel(0.0f); 
     for (int y = -ks; y <= ks; y++) {
         for (int x = -ks; x <= ks; x++) {
-            int img_y = v + y;
-            int img_x = u + x;
-            size_t img_idx = img_y * width + img_x;
-            if (img_y < 0 || img_y >= height || img_x < 0 || img_x >= width)
-                continue; // out of image bounds (crop for now)
-            pixel = pixel + kernel->at(x, y) * in_buf[img_idx]; 
-            kernel_weight += kernel->at(x, y);
+            int neighbour_y = v + y;
+            int neighbour_x = u + x;
+            size_t neighbour_idx = neighbour_y * width + neighbour_x;
+
+            // out of image bounds (crop for now)
+            if (neighbour_y < 0 || neighbour_y >= height || 
+                    neighbour_x < 0 || neighbour_x >= width)
+                continue; 
+
+            float gs, gi, w;
+            gs = kernel->at(x, y);
+            //@Incomplete Maybe move this to outside the nested for loops in case
+            // the compiler can't manage it by itself. This is prettier though.
+            switch (filter_type) {
+                case NORMAL: gi = 1.0f; break;
+                case BILATERAL: gi = sample_gaussian_1d(255*luminosity(in_buf[neighbour_idx] - in_buf[pixel_idx]), 12.0f); break;
+            }
+            w = gi * gs;
+            pixel = pixel + w * in_buf[neighbour_idx]; 
+            kernel_weight += w;
         }
     }
     pixel = pixel / kernel_weight; 
@@ -193,10 +207,6 @@ void compound_buffers(
         }
         out_image[i] = sum;
     }
-}
-
-inline float luminosity(vec3 color) {
-    return dot(color, vec3(0.21f, 0.72f, 0.07f));
 }
 
 std::vector<vec3> apply_threshold(const std::vector<vec3> &in_buf, float threshold) {
