@@ -7,7 +7,9 @@ float ffmin(float a, float b) {
     return (a < b) ? a : b;
 }
 
-/*
+/**
+ * Saves an image to disk.
+ *
  * Modified from: https://github.com/henrikglass/erodr/blob/master/src/io.c
  */
 void save_ppm(
@@ -25,12 +27,9 @@ void save_ppm(
     // write data.
     for (int i = 0; i < img.resolution.x * img.resolution.y; i++) {
         unsigned char color[3];
-        color[0] = ffmin(/*0.0004f * */img.buf[i].x, 0.99f) * PRECISION_8;
-        color[1] = ffmin(/*0.0004f * */img.buf[i].y, 0.99f) * PRECISION_8;
-        color[2] = ffmin(/*0.0004f * */img.buf[i].z, 0.99f) * PRECISION_8;
-        //color[0] = /*img.buf[i].x*/ 1.0f * PRECISION_8;
-        //color[1] = /*img.buf[i].y*/ 1.0f * PRECISION_8;
-        //color[2] = /*img.buf[i].z*/ 1.0f * PRECISION_8;
+        color[0] = ffmin(img.buf[i].x, 0.999f) * PRECISION_8;
+        color[1] = ffmin(img.buf[i].y, 0.999f) * PRECISION_8;
+        color[2] = ffmin(img.buf[i].z, 0.999f) * PRECISION_8;
         fwrite(color, sizeof(char), 3, fp);
     }
 

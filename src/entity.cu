@@ -4,8 +4,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-/*
- * Triangle mesh.
+/**
+ * Constructs a triangle mesh entity.
+ *
+ * @param path      path to an *.obj file
+ * @param material  a material
  */
 Entity::Entity(const std::string &path, Material *material) {
     tinyobj::attrib_t attrib;
@@ -144,8 +147,12 @@ Entity::Entity(const std::string &path, Material *material) {
     this->shape = TRIANGLE_MESH;
 }
 
-/*
- * Sphere.
+/**
+ * Constructs a sphere entity.
+ *
+ * @param center    the center point of the sphere
+ * @param radius    the radius of the circle
+ * @param material  a material
  */
 Entity::Entity(vec3 center, float radius, Material *material) {
     this->shape     = SPHERE;
@@ -154,11 +161,17 @@ Entity::Entity(vec3 center, float radius, Material *material) {
     this->material  = material;
 }
 
+/**
+ * Constructs an octree for a triangle mesh entity.
+ */
 void Entity::construct_octree() {
     this->octree = new Octree(this->aabb, 0);
     this->octree->insert_triangles(this->vertices, this->triangles, this->n_triangles);
 }
 
+/**
+ * Debug: Print the AABB of an entity
+ */
 void Entity::print() {
     std::cout << "center: " << this->center << std::endl;
     std::cout << "x: " << this->aabb.min.x << " to " << this->aabb.max.x << std::endl;
@@ -166,10 +179,9 @@ void Entity::print() {
     std::cout << "z: " << this->aabb.min.z << " to " << this->aabb.max.z << std::endl;
 }
 
-/************************************************************************************/
-/*                            Geometric transformations                             */
-/************************************************************************************/
-
+/**
+ * Scales an entity by `factor`.
+ */
 void Entity::scale(float factor) {
     if (this->shape == SPHERE) {
         radius *= factor;
@@ -189,6 +201,9 @@ void Entity::scale(float factor) {
     }
 }
 
+/**
+ * Translates an entity by `delta`.
+ */
 void Entity::translate(vec3 delta) {
     // move center for all shapes
     this->center = this->center + delta;
@@ -206,6 +221,9 @@ void Entity::translate(vec3 delta) {
     }
 }
 
+/**
+ * Rotates an entity by `rot`.
+ */
 void Entity::rotate(vec3 rot) {
     if (this->shape == SPHERE)
         return;
@@ -239,10 +257,9 @@ void Entity::rotate(vec3 rot) {
     this->aabb.recalculate(this->vertices, this->n_vertices);
 }
 
-/************************************************************************************/
-/*                                Memory management                                 */
-/************************************************************************************/
-
+/**
+ * Copies an entity to device memory.
+ */
 void Entity::copy_to_device() {
     // copy material to device
     this->material->copy_to_device(); // does nothing if material already copied. Not an issue.
@@ -275,18 +292,19 @@ void Entity::copy_to_device() {
         }
 
         // copy octree
-        // TODO nullcheck for entities that don't have octrees
         if (this->octree != nullptr) {
             this->octree->copy_to_device();
             gpuErrchk(cudaMalloc(&this->d_octree, sizeof(Octree)));
             gpuErrchk(cudaMemcpy(this->d_octree, this->octree, sizeof(Octree), cudaMemcpyHostToDevice));
-            //gpuErrchk(cudaPeekAtLastError());
         }
     }
 
     this->on_device = true;
 }
 
+/**
+ * Frees an entity from device memory. 
+ */
 void Entity::free_from_device() {
     // free material
     if (this->d_material != nullptr) {
@@ -318,8 +336,10 @@ void Entity::free_from_device() {
     this->on_device = false;
 }
 
-/*
- * Destructor. Must be called after free_from_device().
+/**
+ * Destructor. 
+ * 
+ * note: Must be called after free_from_device()!
  */
 Entity::~Entity(){
     if (this->on_device){

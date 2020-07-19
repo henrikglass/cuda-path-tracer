@@ -30,6 +30,9 @@ public:
     void free_from_device();
     void use_hdri_smoothing(bool b);
 
+    /**
+     * Sample equirectangular hdri given a vector `v`
+     */
     __device__ vec3 sample_hdri(vec3 v) const {
         if (!this->has_hdri)
             return vec3(0, 0, 0); 

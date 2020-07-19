@@ -1,6 +1,11 @@
 #include "geometry.cuh"
 #include "util.cuh"
 
+/**
+ * Debug: pretty print* contents of octree. 
+ *
+ *   *not that pretty tbh.
+ */
 void Octree::pretty_print(int child_nr) {
     for(int i = 0; i < this->depth; i++) printf("  ");
     printf("[%d] : ", child_nr);
@@ -13,6 +18,9 @@ void Octree::pretty_print(int child_nr) {
     }
 }
 
+/**
+ * Copies octree to device memory.
+ */
 void Octree::copy_to_device() {
     // copy triangle indices
     long size = this->triangle_indices.size()*sizeof(int);
@@ -32,6 +40,9 @@ void Octree::copy_to_device() {
     this->on_device = true;
 }
 
+/**
+ * Frees octree from device memory.
+ */
 void Octree::free_from_device() {
     if (!this->on_device)
         return;
@@ -49,7 +60,11 @@ void Octree::free_from_device() {
     this->on_device = false;
 }
 
+/**
+ * Destructor.
+ */
 Octree::~Octree() {
+    // @incomplete should not be possible
     if (this->on_device) {
         std::cout << "Octree still on device! :(" << std::endl;
     }
@@ -62,6 +77,9 @@ Octree::~Octree() {
     }
 }
 
+/**
+ * Inserts triangle into octree.
+ */
 void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     float x_min = this->region.min.x;
     float y_min = this->region.min.y;
@@ -109,6 +127,9 @@ void Octree::insert_triangle(vec3 v0, vec3 v1, vec3 v2, size_t triangle_idx) {
     }
 }
 
+/**
+ * Inserts an array of triangles into octree.
+ */
 void Octree::insert_triangles(Vertex *vertices, Triangle *triangles, size_t n_triangles) {
     for (size_t i = 0; i < n_triangles; i++) {
         this->insert_triangle(

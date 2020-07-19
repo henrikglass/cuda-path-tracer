@@ -23,8 +23,17 @@ __device__ bool intersect_triangle(
 );
 
 /*
- * Revelles et. al. parametric octree traversal algorithm.
+ * Finds the closest intersecting triangle with `ray` if it's closer than what's already in `bestHit`.
+ *
+ * This is an implementation of Revelles et. al. parametric octree traversal algorithm.
  * Modified from: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.23.3092&rep=rep1&type=pdf
+ *
+ * @Incomplete Can be optimized further. If first octree leaf with intersecting triangles has none
+ * which is closer than what's already in `bestHit`, we can terminate early.
+ * 
+ * @param ray       a ray
+ * @param bestHit   best ray-entity-intersection so far
+ * @param entity    a pointer to the entity the octree belongs to
  */
 __device__ 
 inline bool Octree::ray_step(
@@ -79,6 +88,9 @@ inline bool Octree::ray_step(
     return false;
 }
 
+/**
+ * Helper function for Revelles implementation.
+ */
 __device__
 inline unsigned char find_first_node(vec3 t0, vec3 tM) {
     unsigned char answer = 0;
@@ -97,6 +109,9 @@ inline unsigned char find_first_node(vec3 t0, vec3 tM) {
     return answer;
 }
 
+/**
+ * Helper function for Revelles implementation.
+ */
 __device__
 inline unsigned char next_node(
         float txm, float tym, float tzm, 
@@ -110,6 +125,9 @@ inline unsigned char next_node(
     return z;
 }
 
+/**
+ * Helper function for Revelles implementation.
+ */
 __device__ /*__noinline__*/
 /*inline*/ bool Octree::proc_subtree(
         unsigned char a,
@@ -172,6 +190,14 @@ __device__ /*__noinline__*/
     return hit;
 }
 
+/**
+ * Traces a ray through the scene to find the closest intersection.
+ *
+ * @param ray           a ray
+ * @param entities      an array of all entities in the scene
+ * @param n_entities    # of elements in `entities`
+ * @param is            a worst case intersection (distance == infinity)
+ */
 __device__
 inline bool trace(const Ray &ray, Entity *entities, int n_entities, Intersection &is) {
     bool is_hit = false;
@@ -207,6 +233,10 @@ inline bool trace(const Ray &ray, Entity *entities, int n_entities, Intersection
     return is_hit;
 }
 
+/**
+ * Gets the closest intesection in an entity, if there is any, and if it's distance
+ * is closer than what's currently in `bestHit`. 
+ */
 __device__
 inline bool Entity::get_closest_intersection(const Ray &ray, Intersection &bestHit) {
     switch (this->shape) {
@@ -219,6 +249,10 @@ inline bool Entity::get_closest_intersection(const Ray &ray, Intersection &bestH
     }
 }
 
+/**
+ * Gets the closest intesection in a sphere entity, if there is any, and if it's distance
+ * is closer than what's currently in `bestHit`. 
+ */
 __device__
 inline bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection &bestHit) {
     vec3 d = ray.origin - this->center;
@@ -240,6 +274,10 @@ inline bool Entity::get_closest_sphere_intersection(const Ray &ray, Intersection
     return false;
 }
 
+/**
+ * Gets the closest intesection in a triangle mesh entity, if there is any, and if it's distance
+ * is closer than what's currently in `bestHit`. 
+ */
 __device__
 inline bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Intersection &bestHit) {
     if (!this->aabb.intersects(ray, bestHit))
@@ -260,6 +298,10 @@ inline bool Entity::get_closest_triangle_mesh_intersection(const Ray &ray, Inter
     }
 }
 
+/**
+ * Checks if `ray` intersects `triangle`. bestHit is updated iff the new intersection is closer
+ * than what's already int `bestHit`.
+ */
 __device__
 inline bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHit, const Ray &ray) {
     vec3 v0 = this->d_vertices[triangle->idx_a].position;
@@ -269,7 +311,7 @@ inline bool Entity::intersects_triangle(Triangle *triangle, Intersection &bestHi
 }
 
 /*
- * Tomas Akenine-Möller and Ben Trumbore's algorithm.
+ * Tomas Akenine-Möller and Ben Trumbore's triangle intersection algorithm.
  *
  * http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/raytri_tam.pdf
  */
@@ -322,6 +364,9 @@ inline bool intersect_triangle(
     return false;
 }
 
+/**
+ * Checks if ray intersects AABB.
+ */
 __device__ 
 inline bool AABB::intersects(const Ray &ray, const Intersection &bestHit) {
     return intersects_aabb(
@@ -336,6 +381,9 @@ inline bool AABB::intersects(const Ray &ray, const Intersection &bestHit) {
     );
 }
 
+/**
+ * Checks if ray intersects AABB.
+ */
 __device__
 inline bool intersects_aabb(
         float min_x,

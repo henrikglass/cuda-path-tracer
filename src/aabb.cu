@@ -1,6 +1,9 @@
 #include "geometry.cuh"
 #include <math.h>
 
+/**
+ * Naively recalculate AABB given an array of vertices.
+ */
 void AABB::recalculate(Vertex *vertices, int n_vertices) {
     vec3 _min(FLT_MAX, FLT_MAX, FLT_MAX);
     vec3 _max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -18,6 +21,9 @@ void AABB::recalculate(Vertex *vertices, int n_vertices) {
     this->max = _max + vec3(AABB_PADDING, AABB_PADDING, AABB_PADDING);
 }
 
+/**
+ * Checks if triangle given by (v0, v1, v2) is completely inside AABB.
+ */
 __host__ 
 bool AABB::contains_triangle(vec3 v0, vec3 v1, vec3 v2) {
     return triangle_inside_aabb(
@@ -31,6 +37,9 @@ int sign(float f) {
     return (f < 0.0f) ? -1 : 1;
 }
 
+/**
+ * Check if plane intersects AABB centered at origin.
+ */
 bool plane_aabb_overlap(vec3 normal, float d, vec3 max_box) {
     vec3 v_min, v_max;
     v_min.x = -sign(normal.x) * max_box.x;
@@ -44,8 +53,10 @@ bool plane_aabb_overlap(vec3 normal, float d, vec3 max_box) {
     return false;
 }
 
-/*
- * @Incomplete Missing a SAT test. But seems to work anyways.
+/**
+ * Check if triangle intersects AABB. 
+ *
+ * @Incomplete Missing a SAT test. Probably why a couple triangles are missing
  * Otherwise add the extra SAT tests:  
  * https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf
  */
@@ -108,6 +119,9 @@ bool AABB::intersects_triangle(vec3 u0, vec3 u1, vec3 u2) {
     return true;
 }
 
+/**
+ * Checks if the triangle given by (v0, v1, v2) is completely inside AABB.
+ */
 __host__ 
 inline bool triangle_inside_aabb(
         float min_x,
@@ -125,6 +139,9 @@ inline bool triangle_inside_aabb(
             inside_aabb(min_x, min_y, min_z, max_x, max_y, max_z, v2);
 }
 
+/**
+ * Checks if a point is inside AABB.
+ */
 __host__ 
 inline bool inside_aabb(
         float min_x,

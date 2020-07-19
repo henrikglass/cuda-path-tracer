@@ -11,6 +11,11 @@ Scene::~Scene() {
     this->free_from_device();
 }
 
+/**
+ * Sets an hdri for the scene.
+ * 
+ * @param path      a path to an *.hdr image file.
+ */
 void Scene::set_hdri(const std::string &path) {
     HDRLoader loader;
     if(!loader.load(path.c_str(), this->hdri)) {
@@ -20,27 +25,45 @@ void Scene::set_hdri(const std::string &path) {
     has_hdri = true;
 }
 
+/**
+ * Sets hdri exposure.
+ */
 void Scene::set_hdri_exposure(float exposure) {
     this->hdri_exposure = exposure;
 }
 
+/**
+ * Sets hdri constrast.
+ */
 void Scene::set_hdri_contrast(float contrast) {
     this->hdri_contrast = contrast;
 }
 
+/**
+ * Turns hdri smoothing on/off.
+ */
 void Scene::use_hdri_smoothing(bool b) {
     this->use_smooth_hdri = b;
 }
 
+/**
+ * Sets hdri rotation.
+ */
 void Scene::rotate_hdri(float amount) {
     assert(amount >= 0.0f);
     this->hdri_rot_offset = fmod(amount, 1.0f);
 }
 
+/**
+ * Adds an object to the scene.
+ */
 void Scene::add_entity(Entity *entity) {
     this->entities.push_back(entity);
 }
 
+/**
+ * Copies scene to device memory.
+ */
 void Scene::copy_to_device() {
     if (has_hdri) {
         this->hdri.copy_to_device();
@@ -66,6 +89,9 @@ void Scene::copy_to_device() {
     this->n_entities = this->entities.size();
 }
 
+/**
+ * Frees scene from device memory.
+ */
 void Scene::free_from_device() {
     if (!this->on_device)
         return;

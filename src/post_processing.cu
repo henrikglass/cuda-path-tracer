@@ -5,8 +5,8 @@
 #include "util.cuh"
 #include "math_util.cuh"
 
-/*
- * Kernel
+/**
+ * Debug: Prints contents of kernel
  */
 void Kernel::print() {
     // we copy from device memory every time. But it's fine. print() is only for debugging.
@@ -25,12 +25,18 @@ void Kernel::print() {
     delete [] temp_buf;
 }
 
+/**
+ * Samples a 1D gaussian function.
+ */
 __device__ float sample_gaussian_1d(float x, float sigma) {
     float fac = 1.0f / (sigma*sigma*2*C_PI);
     float exp = -((x*x) / (2*sigma*sigma));
     return fac * powf(C_E, exp);
 }
 
+/**
+ * Samples a 2D gaussian function.
+ */
 float sample_gaussian_2d(float x, float y, float sigma) {
     // @Incomplete maybe integrate from (x,y) - 0.5 to (x,y) + 0.5
     // for more accurate samples
@@ -39,7 +45,7 @@ float sample_gaussian_2d(float x, float y, float sigma) {
     return fac * powf(M_E, exp);
 }
 
-/*
+/**
  * Makes a gaussian kernel.
  */
 void Kernel::make_gaussian(unsigned int _size, float sigma) {
@@ -61,6 +67,9 @@ void Kernel::make_gaussian(unsigned int _size, float sigma) {
     delete[] temp_buf;
 }
 
+/**
+ * Makes a uniform distribution kernel.
+ */
 void Kernel::make_mean(unsigned int _size) {
     assert(this->d_buf == nullptr);
     this->size = _size;
@@ -74,6 +83,9 @@ void Kernel::make_mean(unsigned int _size) {
     delete[] temp_buf;
 }
 
+/**
+ * Samples kernel (x,y), where (0,0) is the center. 
+ */
 __device__
 float Kernel::at(int x, int y) const {
     y = this->size + y;
@@ -82,7 +94,20 @@ float Kernel::at(int x, int y) const {
     return this->d_buf[idx];
 }
 
-void apply_filter(std::vector<vec3> &buf, ivec2 resolution, const Kernel &kernel, FilterType filter_type) {
+/**
+ * Wrapper function for applying a kernel (filter) to an image buffer on the device.
+ * 
+ * @param buf           the image buffer
+ * @param resolution    the image resolution
+ * @param kernel        the kernel (filter) to be applied
+ * @param filter_type   specifies the filter type. Default is `NORMAL`
+ */
+void apply_filter(
+        std::vector<vec3> &buf,
+        ivec2 resolution,
+        const Kernel &kernel,
+        FilterType filter_type
+) {
     // prepare buffers and kernel
     size_t buf_size = buf.size() * sizeof(vec3);
     vec3 *in_buf = prepare_cuda_buffer(buf);
@@ -105,7 +130,16 @@ void apply_filter(std::vector<vec3> &buf, ivec2 resolution, const Kernel &kernel
     gpuErrchk(cudaFree(d_kernel));
 }
 
-
+/**
+ * Applies a kernel to an image buffer on the device.
+ * 
+ * @param out_buf       the output image buffer
+ * @param in_buf        the input image buffer
+ * @param buf_size      the size of `out_buf` and `in_buf` in bytes
+ * @param resolution    the image resolution
+ * @param kernel        the kernel (filter) to be applied
+ * @param filter_type   specifies the filter type. Default is `NORMAL`
+ */
 __global__ 
 void device_apply_filter(
         vec3 *out_buf,
@@ -141,7 +175,7 @@ void device_apply_filter(
             // the compiler can't manage it by itself. This is prettier though.
             switch (filter_type) {
                 case NORMAL: gi = 1.0f; break;
-                case BILATERAL: gi = sample_gaussian_1d(255*luminosity(in_buf[neighbour_idx] - in_buf[pixel_idx]), 12.0f); break;
+                case BILATERAL: gi = sample_gaussian_1d(255*luminosity(in_buf[neighbour_idx] - in_buf[pixel_idx]), 24.0f); break;
             }
             w = gi * gs;
             pixel = pixel + w * in_buf[neighbour_idx]; 
@@ -152,12 +186,12 @@ void device_apply_filter(
     out_buf[pixel_idx] = pixel;
 }
 
-/*
- * Post Processing
+/**
+ * Applies ACES-style color correction to a single color value.
+ * 
+ * From: https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
  */
-vec3 ACESFilm(vec3 x)
-{
-    // From: https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+vec3 ACESFilm(vec3 x) {
     float a = 2.51f;
     float b = 0.03f;
     float c = 2.43f;
@@ -170,6 +204,10 @@ vec3 ACESFilm(vec3 x)
     return res;
 }
 
+/**
+ * Normalizes the pixel color values in `buf` by the total number of
+ * samples per pixel.
+ */
 void normalize_image(
         std::vector<vec3> &buf, 
         unsigned int n_samples_per_pixel
@@ -179,12 +217,18 @@ void normalize_image(
     }
 }
 
+/**
+ * Applies ACES-style color correction to an image buffer.
+ */
 void apply_aces(std::vector<vec3> &buf) {
     for (size_t i = 0; i < buf.size(); i++) {
         buf[i] = ACESFilm(buf[i]);
     }
 }
 
+/**
+ * Applies gamma correction to an image buffer.
+ */
 void gamma_correct(std::vector<vec3> &buf, float gamma) {
     for (size_t i = 0; i < buf.size(); i++) {
         buf[i].x = pow(buf[i].x, 1.0f / gamma);
@@ -193,6 +237,9 @@ void gamma_correct(std::vector<vec3> &buf, float gamma) {
     }
 }
 
+/**
+ * Compounds (adds) multiple image buffers together.
+ */
 void compound_buffers(
         std::vector<vec3> &out_image,
         const std::vector<vec3> &in_buf, 
@@ -209,6 +256,9 @@ void compound_buffers(
     }
 }
 
+/**
+ * Applies a luminosity threshold to an image buffer.
+ */
 std::vector<vec3> apply_threshold(const std::vector<vec3> &in_buf, float threshold) {
     std::vector<vec3> result(in_buf.size());
     for (size_t i = 0; i < in_buf.size(); i++) {
@@ -218,6 +268,9 @@ std::vector<vec3> apply_threshold(const std::vector<vec3> &in_buf, float thresho
     return result;
 }
 
+/**
+ * Adds two image buffers. 
+ */
 void image_add(std::vector<vec3> &buf, const std::vector<vec3> &layer, float opacity) {
     assert(buf.size() == layer.size()); 
     for (size_t i = 0; i < buf.size(); i++) {

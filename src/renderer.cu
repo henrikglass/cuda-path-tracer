@@ -7,15 +7,15 @@
 #include "vector.cuh"
 #include "post_processing.cuh"
 
-/*
- * Device side
- */
-
 // definitions put in header because having them
 // in multiple separate compilation units impacts
 // performance negatively.
 #include "device_geometry_functions.cuh"
 
+/**
+ * Initializes a curandState object for each pixel in the scene and
+ * stores it in `rand_state`.
+ */
 __global__
 void render_init(Camera camera, curandState *rand_state) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -26,6 +26,9 @@ void render_init(Camera camera, curandState *rand_state) {
     curand_init(1337, pixel_idx, 0, &rand_state[pixel_idx]);
 }
 
+/**
+ * Renders an image on the device, given a render configuration `config`.
+ */
 __global__
 void device_render(RenderConfig config) {
     int u = blockIdx.x * blockDim.x + threadIdx.x;
@@ -47,6 +50,13 @@ void device_render(RenderConfig config) {
     config.buf[pixel_idx + buf_offset] = config.buf[pixel_idx + buf_offset] + result;
 }
 
+/**
+ * Create a ray originating from the camera.
+ *
+ * @param camera            a camera object
+ * @param u, v              the pixel coordinate
+ * @param local_rand_state  a curandState object
+ */
 __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local_rand_state) {
     // create perfect (pinhole) ray
     vec3 ray_orig = camera.position;
@@ -76,6 +86,13 @@ __device__ Ray create_camera_ray(Camera camera, int u, int v, curandState *local
     return Ray(ray_orig, ray_dir);
 }
 
+/**
+ * Compute a single pixel color sample.
+ * 
+ * @param ray               a ray originating from the camera
+ * @param scene             the scene representation
+ * @param local_rand_state  a curandState object
+ */
 __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
     vec3 attenuation(1.0f, 1.0f, 1.0f);
     vec3 result(0.0f, 0.0f, 0.0f);
@@ -124,10 +141,19 @@ __device__ vec3 color(Ray &ray, Scene *scene, curandState *local_rand_state) {
     return result;
 }
 
+/**
+ * Perfectly reflect the `dir` given a normal vector of the surface `normal`
+ */
 __device__ vec3 reflect(vec3 dir, vec3 normal) {
     return dir - 2.0f * dot(dir, normal) * normal;
 }
 
+/**
+ * Samples a hemisphere around `dir`.
+ *
+ * @param dir       vector describing the orientation of the hemisphere to sample
+ * @param alpha     the phong alpha, obtained from a materials `smoothness`
+ */
 __device__ vec3 sample_hemisphere(vec3 dir, float alpha, curandState *local_rand_state) {    
     float cos_theta = __powf(curand_uniform(local_rand_state), 1.0f / (alpha + 1.0f));
     float sin_theta = __fsqrt_rn(1.0f - cos_theta * cos_theta);
@@ -136,6 +162,9 @@ __device__ vec3 sample_hemisphere(vec3 dir, float alpha, curandState *local_rand
     return tangent_space_dir * get_tangent_space(dir);
 }
 
+/**
+ * Construct a tangent space basis given a normal vector.
+ */
 __device__ mat3 get_tangent_space(vec3 normal) {
     vec3 helper = vec3(1, 0, 0);
     if (fabsf(normal.x) > 0.99f)
@@ -145,14 +174,21 @@ __device__ mat3 get_tangent_space(vec3 normal) {
     return mat3(tangent, binormal, normal);
 }
 
-/*
- * Host functions
+/**
+ * Helper function for calculating `n_samples_per_pass` given a number of samples
+ * per pixel `spp`.
  */
-
 void Renderer::set_samples_per_pixel(unsigned int spp) {
     this->n_samples_per_pass = max(spp / (this->n_blocks_per_tile * this->n_split_buffers), 1);
 }
 
+/**
+ * Wrapper function for rendering a scene and applying some post processing on 
+ * the device.
+ *
+ * @param camera    a camera object
+ * @param scene     a scene representation
+ */
 Image Renderer::render(const Camera &camera, Scene &scene) {
     // Allocate output image buffer on device
     int n_pixels = camera.resolution.x * camera.resolution.y;
@@ -252,13 +288,13 @@ Image Renderer::render(const Camera &camera, Scene &scene) {
     image_add(result_pixels,  bright_parts, 0.5f);
 
     Kernel kk;
-    kk.make_gaussian(4, 1.0f);
+    kk.make_gaussian(2, 0.7f);
     //apply_filter(result_pixels, camera.resolution, kk, BILATERAL);
 
     apply_aces(result_pixels);
     //apply_filter(result_pixels, camera.resolution, k);
     gamma_correct(result_pixels, 2.2f);
-    apply_filter(result_pixels, camera.resolution, k, BILATERAL);
+    apply_filter(result_pixels, camera.resolution, kk, BILATERAL);
     
     // **********************************************
     // **********************************************
