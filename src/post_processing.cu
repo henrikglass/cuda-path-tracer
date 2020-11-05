@@ -50,10 +50,10 @@ float sample_gaussian_2d(float x, float y, float sigma) {
  */
 void Kernel::make_gaussian(unsigned int _size, float sigma) {
     assert(this->d_buf == nullptr);
-    this->size = _size;
+    this->size      = _size;
     size_t buf_size = (2 * size + 1) * (2 * size + 1);
     float *temp_buf = new float[buf_size];
-    int ssize = _size;
+    int ssize       = _size;
     for (int y = 0; y < ssize*2 + 1; y++) {
         for (int x = 0; x < ssize*2 + 1; x++) {
             size_t idx = y * (this->size * 2  + 1) + x;
@@ -72,7 +72,7 @@ void Kernel::make_gaussian(unsigned int _size, float sigma) {
  */
 void Kernel::make_mean(unsigned int _size) {
     assert(this->d_buf == nullptr);
-    this->size = _size;
+    this->size      = _size;
     size_t buf_size = (2 * size + 1) * (2 * size + 1);
     float *temp_buf = new float[buf_size];
     for (size_t i = 0; i < buf_size; i++) {
@@ -109,15 +109,15 @@ void apply_filter(
         FilterType filter_type
 ) {
     // prepare buffers and kernel
-    size_t buf_size = buf.size() * sizeof(vec3);
-    vec3 *in_buf = prepare_cuda_buffer(buf);
-    vec3 *out_buf = prepare_empty_cuda_buffer<vec3>(buf.size());
+    size_t buf_size  = buf.size() * sizeof(vec3);
+    vec3 *in_buf     = prepare_cuda_buffer(buf);
+    vec3 *out_buf    = prepare_empty_cuda_buffer<vec3>(buf.size());
     Kernel *d_kernel = prepare_cuda_instance(kernel);
-    int tile_size = 8;
+    int tile_size    = 8;
+
+    // apply filter on image on device 
     dim3 blocks(resolution.x / tile_size, resolution.y / tile_size);
     dim3 threads(tile_size, tile_size);
-    
-    // apply filter on image on device 
     device_apply_filter<<<blocks, threads>>>(out_buf, in_buf, buf_size, resolution, d_kernel, filter_type);
     gpuErrchk(cudaDeviceSynchronize());
     
@@ -245,7 +245,6 @@ void compound_buffers(
         const std::vector<vec3> &in_buf, 
         unsigned int n_split_buffers
 ) {
-    std::cout << "capacity: " << out_image.capacity() << std::endl;
     size_t single_buffer_size = out_image.capacity();
     for (size_t i = 0; i < single_buffer_size; i++) {
         vec3 sum(0);

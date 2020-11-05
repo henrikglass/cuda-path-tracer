@@ -38,7 +38,7 @@ T* prepare_cuda_instance(const T &to_copy) {
 
 // not really math @Incomplete Move this somewhere more suitable
 __host__ __device__ inline float luminosity(vec3 color) {
-    return dot(color, vec3(0.21f, 0.72f, 0.07f));
+    return dot(color, vec3(0.2126f, 0.7152f, 0.0722f));
 }
 
 #endif

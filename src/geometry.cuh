@@ -21,9 +21,10 @@ struct Ray {
         recalc_fracs();
     }
     __host__ __device__ void recalc_fracs() {
-        fracs.x = fminf(1.0f / this->direction.x, MAX_RDIR);
-        fracs.y = fminf(1.0f / this->direction.y, MAX_RDIR);
-        fracs.z = fminf(1.0f / this->direction.z, MAX_RDIR);
+        // @Incomplete this only works with positive sign
+        fracs.x = fmaxf(fminf(1.0f / this->direction.x, MAX_RDIR), -MAX_RDIR);
+        fracs.y = fmaxf(fminf(1.0f / this->direction.y, MAX_RDIR), -MAX_RDIR);
+        fracs.z = fmaxf(fminf(1.0f / this->direction.z, MAX_RDIR), -MAX_RDIR);
     }
     vec3 origin;
     vec3 direction;

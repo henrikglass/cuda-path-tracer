@@ -11,7 +11,7 @@ CC_LIBS		= -isystem
 
 # NVCC compiler options:
 NVCC 		= nvcc
-NVCC_FLAGS 	= -ccbin clang++-8 -use_fast_math -Xcompiler -O2 -Xcompiler $(WARNINGS) -dc -arch=sm_75 #-Xcompiler -g #-gencode arch=compute_75,code=sm_75 -lineinfo #-G#-arch compute_75 #-G -lineinfo -Xcompiler -Wall -Xcompiler -Wextra -Xcompiler -p -Xcompiler -pg
+NVCC_FLAGS 	= -ccbin clang++-8 -use_fast_math -Xcompiler -O2 -Xcompiler $(WARNINGS) -dc -arch=sm_75 -Xcompiler -g #-gencode arch=compute_75,code=sm_75 -lineinfo #-G#-arch compute_75 #-G -lineinfo -Xcompiler -Wall -Xcompiler -Wextra -Xcompiler -p -Xcompiler -pg
 NVCC_LIBS 	= -isystem external
 
 # Linker options
