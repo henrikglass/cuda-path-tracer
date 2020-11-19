@@ -25,7 +25,7 @@ To render complex objects with large polygon counts within reasonable time cuda-
 The camera has adjustable aperture and focus 😎
 
 ## Issues
-There's some stuff that's not complete or not working correctly. First, there is a bug which causes some triangles to dissappear when using octrees. It's rare, and when it does occur it's usually fixable by adjusting the octree depth. Probably not that difficult of a fix, I just grew tired of this project not to long after I noticed it.  
+There's some stuff that's not complete or not working correctly. First, there is a bug which causes some triangles to dissappear when using octrees. It's rare, and when it does occur it's usually fixable by adjusting the octree depth. Probably not that difficult of a fix, I just grew tired of this project not too long after I noticed it.  
   
 Secondly, face normals are not read correctly when importing an entity as a \*.obj file. This causes issues when setting the smooth shading material property to true. A simple workaround is to let cuda-path-tracer recompute the face normals. The fix is not that difficult, again I just grew tired of the project.
 
